@@ -3,17 +3,17 @@ import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useAuth } from '../../context/CustomAuthContext';
 import { getPasswordRequirements, validateEmail, validatePassword } from '../../utils/passwordValidation';
@@ -189,13 +189,16 @@ const SignUpScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
+      // Format the date as ISO string to ensure consistency
+      const formattedDOB = dateOfBirth ? dateOfBirth.toISOString().split('T')[0] : null;
+      
       const userData = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         middleName: middleName.trim() || null,
         email: email.trim().toLowerCase(),
         phoneNumber: phoneNumber.trim() || null,
-        DOB: dateOfBirth ? dateOfBirth.toISOString().split('T')[0] : null,
+        DOB: formattedDOB,
         street1: street1.trim(),
         street2: street2.trim() || null,
         city: city.trim(),
@@ -204,8 +207,17 @@ const SignUpScreen = ({ navigation }) => {
         country: country.trim(),
         zone: zone.trim(),
         role: 'Member', // Default role
-        password: password
+        password: password,
+        createdAt: new Date().toISOString() // Add creation timestamp
       };
+      
+      console.log('📝 SignUpScreen: Submitting registration with DOB:', userData.DOB);
+      
+      // Check if today is the user's birthday (for immediate birthday wish)
+      const today = new Date();
+      if (dateOfBirth && today.getDate() === dateOfBirth.getDate() && today.getMonth() === dateOfBirth.getMonth()) {
+        console.log('📝 SignUpScreen: Today is user\'s birthday!');
+      }
 
       const result = await register(userData);
 

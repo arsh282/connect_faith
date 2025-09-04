@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import { useEffect } from 'react';
 import {
     ScrollView,
     StatusBar,
@@ -18,6 +18,38 @@ import { useEventNotifications } from '../../services/eventNotificationService';
 
 const HomeScreen = ({ navigation }) => {
   const { userProfile, logout } = useAuth();
+  
+  useEffect(() => {
+    // Log user profile information for debugging birthday wish feature
+    console.log('🏠 HomeScreen: User profile loaded:', userProfile ? 'Yes' : 'No');
+    if (userProfile) {
+      console.log('🏠 HomeScreen: User details:', {
+        name: userProfile.firstName,
+        DOB: userProfile.DOB,
+        createdAt: userProfile.createdAt
+      });
+      
+      // Check if today is user's birthday
+      if (userProfile.DOB) {
+        const today = new Date();
+        const dob = new Date(userProfile.DOB);
+        
+        if (today.getDate() === dob.getDate() && today.getMonth() === dob.getMonth()) {
+          console.log('🏠 HomeScreen: Today is user\'s birthday!');
+        }
+        
+        // Check if user signed up today
+        if (userProfile.createdAt) {
+          const createdDate = new Date(userProfile.createdAt);
+          const isSignupToday = today.toDateString() === createdDate.toDateString();
+          
+          if (isSignupToday) {
+            console.log('🏠 HomeScreen: User signed up today!');
+          }
+        }
+      }
+    }
+  }, [userProfile]);
   const permissions = useRolePermissions();
   
   // Get events data from the API

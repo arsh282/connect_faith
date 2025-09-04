@@ -101,14 +101,26 @@ export const mockApiService = {
 
       mockUsers.push(newUser);
       
+      // Log the DOB that is being included in the user record
+      console.log('🎭 Mock API: Registering user with DOB:', newUser.DOB);
+      console.log('🎭 Mock API: User created at:', newUser.createdAt);
+      
+      // Special check for birthday on signup day
+      const today = new Date();
+      const dob = new Date(newUser.DOB);
+      if (today.getDate() === dob.getDate() && today.getMonth() === dob.getMonth()) {
+        console.log('🎭 Mock API: Today is user\'s birthday!');
+      }
+      
       const response = await mockApiService.simulateApiCall({
         user: {
           id: newUser.id,
           firstName: newUser.firstName,
           lastName: newUser.lastName,
           email: newUser.email,
-          DOB: newUser.DOB,
-          role: 'Member'
+          DOB: newUser.DOB, // Ensure DOB is properly included
+          role: 'Member',
+          createdAt: newUser.createdAt // Include creation timestamp
         },
         token: `mock_token_${Date.now()}`
       });
