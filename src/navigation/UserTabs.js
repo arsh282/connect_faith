@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
 import { Platform } from 'react-native';
 
 import AnnouncementsScreen from '../views/screens/AnnouncementsScreen';
@@ -11,6 +10,7 @@ import EventDetailsScreen from '../views/screens/EventDetailsScreen';
 import EventsCalendarScreen from '../views/screens/EventsCalendarScreen';
 import HomeScreen from '../views/screens/HomeScreen';
 import NotificationCenterScreen from '../views/screens/NotificationCenterScreen';
+import NotificationScreen from '../views/screens/NotificationScreen';
 import PrayerWallScreen from '../views/screens/PrayerWallScreen';
 import ProfileSettingsScreen from '../views/screens/ProfileSettingsScreen';
 import SermonArchiveScreen from '../views/screens/SermonArchiveScreen';
@@ -27,6 +27,7 @@ function HomeStack() {
       }}
     >
       <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
       <Stack.Screen name="Notifications" component={NotificationCenterScreen} />
       <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
       <Stack.Screen name="Donations" component={DonationsScreen} />

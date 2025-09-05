@@ -1,9 +1,9 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
 import AdminDashboardScreen from '../views/screens/AdminDashboardScreen';
 import CreateEditAnnouncementScreen from '../views/screens/CreateEditAnnouncementScreen';
 import CreateEditEventScreen from '../views/screens/CreateEditEventScreen';
 import DonationReportsScreen from '../views/screens/DonationReportsScreen';
+import EventManagementScreen from '../views/screens/EventManagementScreen';
 import EventRegistrationsScreen from '../views/screens/EventRegistrationsScreen';
 import ModerationCenterScreen from '../views/screens/ModerationCenterScreen';
 import UploadEditSermonScreen from '../views/screens/UploadEditSermonScreen';
@@ -31,6 +31,7 @@ export default function AdminNavigator() {
       <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} options={{ title: 'Admin' }} />
       <Stack.Screen name="CreateAnnouncement" component={CreateEditAnnouncementScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateEvent" component={CreateEditEventScreen} />
+      <Stack.Screen name="EventManagement" component={EventManagementScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EventRegistrations" component={EventRegistrationsScreen} />
       <Stack.Screen name="UploadSermon" component={UploadEditSermonScreen} />
       <Stack.Screen name="DonationReports" component={DonationReportsScreen} />

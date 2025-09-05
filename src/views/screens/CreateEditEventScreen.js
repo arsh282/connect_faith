@@ -1,5 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Alert,
     Modal,
@@ -12,18 +12,23 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { createEvent, getEventCategories } from '../../controllers/EventController';
+import { createEvent, getEventCategories, updateEvent } from '../../controllers/EventController';
+import { broadcastEvent } from '../../services/eventBroadcastService';
 
-export default function CreateEditEventScreen({ navigation }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
-  const [location, setLocation] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [status, setStatus] = useState('UPCOMING');
-  const [maxAttendees, setMaxAttendees] = useState('');
+export default function CreateEditEventScreen({ navigation, route }) {
+  // Get event data if we're editing an existing event
+  const existingEvent = route.params?.event;
+  const isEditing = !!existingEvent;
+  
+  const [name, setName] = useState(existingEvent?.name || existingEvent?.title || '');
+  const [description, setDescription] = useState(existingEvent?.description || '');
+  const [categoryId, setCategoryId] = useState(existingEvent?.categoryId || '');
+  const [startTime, setStartTime] = useState(existingEvent?.startTime ? new Date(existingEvent.startTime) : new Date());
+  const [endTime, setEndTime] = useState(existingEvent?.endTime ? new Date(existingEvent.endTime) : new Date());
+  const [location, setLocation] = useState(existingEvent?.location || '');
+  const [imageUrl, setImageUrl] = useState(existingEvent?.imageUrl || '');
+  const [status, setStatus] = useState(existingEvent?.status || 'UPCOMING');
+  const [maxAttendees, setMaxAttendees] = useState(existingEvent?.maxAttendees ? String(existingEvent.maxAttendees) : '');
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -146,31 +151,85 @@ export default function CreateEditEventScreen({ navigation }) {
 
     setSaving(true);
     try {
-      await createEvent({
+      const eventData = {
         name: name.trim(),
+        title: name.trim(), // For compatibility with notification system
         description: description.trim() || null,
         categoryId,
-        startTime,
-        endTime,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        date: startTime.toISOString(), // For compatibility with notification system
         location: location.trim() || null,
         imageUrl: imageUrl.trim() || null,
         status,
         maxAttendees: maxAttendees ? Number(maxAttendees) : null,
-      });
-      Alert.alert('Success', 'Event created successfully');
+        updatedAt: new Date().toISOString()
+      };
+
+      if (isEditing) {
+        // Update existing event
+        const updatedEvent = await updateEvent(existingEvent.id, eventData);
+        
+        // Broadcast the updated event to all users
+        if (updatedEvent) {
+          console.log('Broadcasting updated event to all users');
+          await broadcastEvent(updatedEvent);
+        }
+        
+        Alert.alert('Success', 'Event updated successfully');
+      } else {
+        // Create new event
+        const newEvent = await createEvent(eventData);
+        
+        // Double ensure broadcast by also calling broadcastEvent directly
+        if (newEvent) {
+          console.log('Double ensuring event broadcast to all users');
+          await broadcastEvent(newEvent);
+        }
+        
+        Alert.alert('Success', 'Event created successfully');
+      }
+      
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to create event');
+      Alert.alert('Error', error.message || `Failed to ${isEditing ? 'update' : 'create'} event`);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete Event', 'This is a mock screen. Implement deletion with your backend.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'OK' },
-    ]);
+    // Only show delete option for existing events
+    if (!isEditing) {
+      return;
+    }
+    
+    Alert.alert(
+      'Delete Event', 
+      'Are you sure you want to delete this event? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              setSaving(true);
+              // Import dynamically to avoid circular imports
+              const { deleteEvent } = require('../../controllers/EventController');
+              await deleteEvent(existingEvent.id);
+              Alert.alert('Success', 'Event deleted successfully');
+              navigation.goBack();
+            } catch (error) {
+              console.error('Failed to delete event:', error);
+              Alert.alert('Error', 'Failed to delete event');
+            } finally {
+              setSaving(false);
+            }
+          }
+        },
+      ]
+    );
   };
 
   return (
@@ -282,12 +341,19 @@ export default function CreateEditEventScreen({ navigation }) {
         </View>
 
         <TouchableOpacity style={[styles.primaryButton, saving && { opacity: 0.7 }]} onPress={handleSave} disabled={saving}>
-          <Text style={styles.primaryButtonText}>{saving ? 'Creating…' : 'Create Event'}</Text>
+          <Text style={styles.primaryButtonText}>
+            {saving 
+              ? (isEditing ? 'Updating…' : 'Creating…') 
+              : (isEditing ? 'Update Event' : 'Create Event')
+            }
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.destructiveButton} onPress={handleDelete}>
-          <Text style={styles.destructiveButtonText}>Delete Event</Text>
-        </TouchableOpacity>
+        {isEditing && (
+          <TouchableOpacity style={styles.destructiveButton} onPress={handleDelete}>
+            <Text style={styles.destructiveButtonText}>Delete Event</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Category Picker Modal */}

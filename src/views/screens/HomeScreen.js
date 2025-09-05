@@ -2,26 +2,94 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import BirthdayWish from '../../components/BirthdayWish';
+import NotificationBell from '../../components/NotificationBell';
 import { RoleIndicator, useRolePermissions } from '../../components/RoleBasedAccess';
 import { useAuth } from '../../context/CustomAuthContext';
+import { resetNotificationState } from '../../services/eventBroadcastService';
+import { useEventNotifications } from '../../services/eventNotificationService';
 
 const HomeScreen = ({ navigation }) => {
   const { userProfile, logout } = useAuth();
   const permissions = useRolePermissions();
+  
+  // Get events data from the API
+  const [events, setEvents] = React.useState([]);
+  
+  // Fetch events when the component mounts and periodically refresh
+  React.useEffect(() => {
+    let isMounted = true;
+    
+    async function fetchEvents() {
+      try {
+        if (!isMounted) return;
+        
+        // Import dynamically to avoid circular dependencies
+        const { mockApiService } = require('../../services/mockApi');
+        
+        // Fetch events from the API (mock or real)
+        const response = await mockApiService.getEvents();
+        
+        if (response.success && response.data && isMounted) {
+          console.log('📅 Fetched events:', response.data.length);
+          setEvents(response.data);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching events:', error);
+      }
+    }
+    
+    // Initial fetch
+    fetchEvents();
+    
+    // Set up periodic refresh (every 30 seconds) to catch new events
+    const intervalId = setInterval(() => {
+      console.log('📅 Refreshing events data...');
+      fetchEvents();
+    }, 30000); // 30 seconds
+    
+    // Clean up
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, []);
+  
+  // Filter events for non-admin users and ensure it's a valid array
+  const eventsToProcess = React.useMemo(() => {
+    // Double ensure events is always an array
+    const eventsArray = Array.isArray(events) ? events : [];
+    return userProfile?.role === 'Admin' ? [] : eventsArray;
+  }, [userProfile?.role, events]);
+  
+  // Always call hooks at the top level - the hook itself will now safely handle undefined/null events
+  useEventNotifications(eventsToProcess);
 
   const handleLogout = async () => {
     try {
       await logout();
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  };
+  
+  // Function to reset notification state for testing
+  const handleResetNotifications = async () => {
+    if (userProfile?.id) {
+      try {
+        await resetNotificationState(userProfile.id);
+        alert('Notification system reset. Please restart the app to see new notifications.');
+      } catch (error) {
+        console.error('Error resetting notifications:', error);
+        alert('Failed to reset notifications');
+      }
     }
   };
 
@@ -152,9 +220,21 @@ const HomeScreen = ({ navigation }) => {
               </View>
             </View>
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color="#fff" />
-          </TouchableOpacity>
+          {userProfile?.role === 'Admin' ? (
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.resetButton} 
+                onPress={handleResetNotifications}
+              >
+                <Ionicons name="refresh" size={18} color="#fff" />
+              </TouchableOpacity>
+              <NotificationBell onLogout={handleLogout} />
+            </View>
+          )}
         </View>
       </LinearGradient>
 
@@ -256,6 +336,19 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     padding: 8,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  resetButton: {
+    marginRight: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,

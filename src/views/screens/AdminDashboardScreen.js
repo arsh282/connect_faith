@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export default function AdminDashboardScreen({ navigation }) {
@@ -44,7 +43,11 @@ export default function AdminDashboardScreen({ navigation }) {
             icon="calendar-outline"
             title="Manage Events"
             description="Create, edit, or view event details."
-            onPress={() => navigation.navigate('CreateEvent')}
+            onPress={() => {
+              // Navigate to event management screen
+              console.log('Navigating to event management screen');
+              navigation.navigate('EventManagement');
+            }}
           />
           <QuickCard
             icon="document-text-outline"

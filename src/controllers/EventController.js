@@ -1,5 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/apiConfig';
 import { apiService } from '../services/api';
+import { broadcastEvent } from '../services/eventBroadcastService';
 import { mockApiService } from '../services/mockApi';
 
 // Helper function to get auth token (you'll need to implement this based on your auth system)
@@ -19,19 +21,52 @@ export const createEvent = async (payload) => {
   try {
     const token = getAuthToken();
     
+    // Make sure we have a title field for notification system compatibility
+    if (payload.name && !payload.title) {
+      payload.title = payload.name;
+    }
+    
+    // Make sure we have a date field for notification system compatibility
+    if (payload.startTime && !payload.date) {
+      payload.date = payload.startTime;
+    }
+    
+    // Add creation timestamp if not provided
+    if (!payload.createdAt) {
+      payload.createdAt = new Date().toISOString();
+    }
+    
+    console.log('Creating event with payload:', payload);
+    
+    let createdEvent;
+    
     if (useMockApi()) {
       const result = await mockApiService.createEvent(payload, token);
       if (!result.success) {
         throw new Error(result.error);
       }
-      return result.data;
+      
+      createdEvent = result.data.event || result.data;
+      console.log('Event created successfully:', createdEvent);
     } else {
       const result = await apiService.createEvent(payload, token);
       if (!result.success) {
         throw new Error(result.error);
       }
-      return result.data;
+      createdEvent = result.data.event || result.data;
     }
+    
+    // Broadcast the event to all users
+    try {
+      console.log('Broadcasting event to all users');
+      await broadcastEvent(createdEvent);
+      console.log('Event broadcast successfully');
+    } catch (broadcastError) {
+      console.error('Error broadcasting event:', broadcastError);
+      // We don't want to fail the event creation if broadcasting fails
+    }
+    
+    return createdEvent;
   } catch (error) {
     console.error('Create event error:', error);
     throw error;
@@ -63,6 +98,20 @@ export const getEvent = async (id) => {
 
 export const updateEvent = async (id, payload) => {
   try {
+    if (!id) {
+      throw new Error('Event ID is required');
+    }
+    
+    console.log('Updating event with ID:', id);
+    
+    // Make sure we have required fields for notification system
+    if (!payload.title && payload.name) {
+      payload.title = payload.name;
+    }
+    if (!payload.date && payload.startTime) {
+      payload.date = payload.startTime;
+    }
+    
     const token = getAuthToken();
     
     if (useMockApi()) {
@@ -70,6 +119,30 @@ export const updateEvent = async (id, payload) => {
       if (!result.success) {
         throw new Error(result.error);
       }
+      
+      // Also update the event in broadcast events if it exists there
+      try {
+        const broadcastKey = 'broadcast_events';
+        const storedEvents = await AsyncStorage.getItem(broadcastKey);
+        if (storedEvents) {
+          const broadcastEvents = JSON.parse(storedEvents);
+          const updatedEvents = broadcastEvents.map(event => {
+            if (event.id === id) {
+              return {
+                ...event,
+                ...payload,
+                updatedAt: new Date().toISOString()
+              };
+            }
+            return event;
+          });
+          await AsyncStorage.setItem(broadcastKey, JSON.stringify(updatedEvents));
+          console.log('Updated event in broadcast events');
+        }
+      } catch (err) {
+        console.error('Error updating event in broadcasts:', err);
+      }
+      
       return result.data;
     } else {
       const result = await apiService.updateEvent(id, payload, token);
@@ -86,13 +159,34 @@ export const updateEvent = async (id, payload) => {
 
 export const deleteEvent = async (id) => {
   try {
+    if (!id) {
+      throw new Error('Event ID is required');
+    }
+    
+    console.log('Deleting event with ID:', id);
     const token = getAuthToken();
     
     if (useMockApi()) {
+      // Delete from mock API (uses AsyncStorage)
       const result = await mockApiService.deleteEvent(id, token);
       if (!result.success) {
         throw new Error(result.error);
       }
+      
+      // Delete from broadcast events too to ensure it doesn't appear in notifications
+      try {
+        const broadcastKey = 'broadcast_events';
+        const storedEvents = await AsyncStorage.getItem(broadcastKey);
+        if (storedEvents) {
+          const broadcastEvents = JSON.parse(storedEvents);
+          const filteredEvents = broadcastEvents.filter(event => event.id !== id);
+          await AsyncStorage.setItem(broadcastKey, JSON.stringify(filteredEvents));
+          console.log('Removed event from broadcast events');
+        }
+      } catch (err) {
+        console.error('Error removing event from broadcasts:', err);
+      }
+      
       return result.data;
     } else {
       const result = await apiService.deleteEvent(id, token);
@@ -132,6 +226,7 @@ export const getEventCategories = async () => {
 
 export const getEvents = async (filters = {}) => {
   try {
+    console.log('Getting events with filters:', filters);
     const token = getAuthToken();
     
     if (useMockApi()) {
@@ -139,13 +234,37 @@ export const getEvents = async (filters = {}) => {
       if (!result.success) {
         throw new Error(result.error);
       }
-      return result.data;
+      
+      // Ensure all events have consistent field names for compatibility
+      const normalizedEvents = result.data.map(event => {
+        return {
+          ...event,
+          title: event.title || event.name, // Ensure title is present
+          name: event.name || event.title,  // Ensure name is present
+          date: event.date || event.startTime, // Ensure date is present
+          startTime: event.startTime || event.date, // Ensure startTime is present
+        };
+      });
+      
+      return { success: true, data: normalizedEvents };
     } else {
       const result = await apiService.getEvents(token, filters);
       if (!result.success) {
         throw new Error(result.error);
       }
-      return result.data;
+      
+      // Apply the same normalization for real API responses
+      const normalizedEvents = result.data.map(event => {
+        return {
+          ...event,
+          title: event.title || event.name,
+          name: event.name || event.title,
+          date: event.date || event.startTime,
+          startTime: event.startTime || event.date,
+        };
+      });
+      
+      return { success: true, data: normalizedEvents };
     }
   } catch (error) {
     console.error('Get events error:', error);
