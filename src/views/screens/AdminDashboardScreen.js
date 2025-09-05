@@ -1,10 +1,11 @@
+
 import { Ionicons } from '@expo/vector-icons';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function AdminDashboardScreen({ navigation }) {
@@ -78,6 +79,12 @@ export default function AdminDashboardScreen({ navigation }) {
             title="Content Moderation"
             description="Review and moderate community content."
             onPress={() => navigation.navigate('ModerationCenter')}
+          />
+          <QuickCard
+            icon="people-circle-outline"
+            title="Volunteer Management"
+            description="View and manage volunteer registrations."
+            onPress={() => navigation.navigate('VolunteerManagement')}
           />
         </View>
       </ScrollView>

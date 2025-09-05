@@ -8,6 +8,7 @@ import EventRegistrationsScreen from '../views/screens/EventRegistrationsScreen'
 import ModerationCenterScreen from '../views/screens/ModerationCenterScreen';
 import UploadEditSermonScreen from '../views/screens/UploadEditSermonScreen';
 import UserManagementScreen from '../views/screens/UserManagementScreen';
+import VolunteerManagementScreen from '../views/screens/VolunteerManagementScreen';
 import AdminTabs from './AdminTabs';
 
 const Stack = createNativeStackNavigator();
@@ -37,6 +38,7 @@ export default function AdminNavigator() {
       <Stack.Screen name="DonationReports" component={DonationReportsScreen} />
       <Stack.Screen name="UserManagement" component={UserManagementScreen} />
       <Stack.Screen name="ModerationCenter" component={ModerationCenterScreen} />
+      <Stack.Screen name="VolunteerManagement" component={VolunteerManagementScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

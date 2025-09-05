@@ -32,11 +32,14 @@ export default function EventsCalendarScreen({ navigation }) {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const eventsData = await getEvents();
-      setEvents(eventsData || []);
+      const result = await getEvents();
+      // Handle the response structure from EventController
+      const eventsData = result?.data || result || [];
+      setEvents(Array.isArray(eventsData) ? eventsData : []);
     } catch (error) {
       console.error('Failed to fetch events:', error);
       Alert.alert('Error', 'Failed to load events');
+      setEvents([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -73,6 +76,9 @@ export default function EventsCalendarScreen({ navigation }) {
   };
 
   const getEventsForDate = (date) => {
+    if (!events || !Array.isArray(events)) {
+      return [];
+    }
     const dateString = date.toISOString().split('T')[0];
     return events.filter(event => {
       // Handle different date formats from API
@@ -95,6 +101,9 @@ export default function EventsCalendarScreen({ navigation }) {
   };
 
   const getUpcomingEvents = () => {
+    if (!events || !Array.isArray(events)) {
+      return [];
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -278,10 +287,7 @@ export default function EventsCalendarScreen({ navigation }) {
                 <TouchableOpacity 
                   key={event.id || index}
                   style={styles.eventItem}
-                  onPress={() => {
-                    setSelectedEvents([event]);
-                    setShowEventDetails(true);
-                  }}
+                  onPress={() => navigation.navigate('EventDetails', { event })}
                 >
                   <View style={styles.eventDateContainer}>
                     <Text style={styles.eventDate}>{formatEventDate(event)}</Text>

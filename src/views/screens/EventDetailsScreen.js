@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Dimensions,
     Image,
+    Modal,
     Platform,
     ScrollView,
     StatusBar,
@@ -11,11 +13,18 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useAuth } from '../../context/CustomAuthContext';
+import {
+    cancelVolunteerRegistration,
+    getUserVolunteerRegistrations,
+    registerVolunteer
+} from '../../services/volunteerService';
 
 const { width, height } = Dimensions.get('window');
 
 export default function EventDetailsScreen({ navigation, route }) {
-  const { event } = route.params || {
+  const { user } = useAuth();
+  const { event: rawEvent } = route?.params || {
     id: 1,
     title: 'Sunday Service',
     date: '2024-03-10',
@@ -31,8 +40,38 @@ export default function EventDetailsScreen({ navigation, route }) {
     volunteerRoles: ['Greeters', 'Ushers', 'Children\'s Ministry', 'Sound Team']
   };
 
-  const [isRSVP, setIsRSVP] = useState(event.isRSVP);
+  // Ensure event has volunteer properties with defaults
+  const event = {
+    ...rawEvent,
+    needsVolunteers: rawEvent?.needsVolunteers ?? true,
+    volunteerRoles: rawEvent?.volunteerRoles ?? ['Greeters', 'Ushers', 'Children\'s Ministry', 'Sound Team', 'Parking Attendants', 'Welcome Team']
+  };
+
+  const [isRSVP, setIsRSVP] = useState(event?.isRSVP || false);
   const [showVolunteerModal, setShowVolunteerModal] = useState(false);
+  const [selectedVolunteerRole, setSelectedVolunteerRole] = useState('');
+  const [isVolunteering, setIsVolunteering] = useState(false);
+
+  // Check if user is already registered as a volunteer for this event
+  useEffect(() => {
+    const checkVolunteerStatus = async () => {
+      if (user?.id && event?.id) {
+        try {
+          const userRegistrations = await getUserVolunteerRegistrations(user.id);
+          const eventRegistration = userRegistrations.find(reg => reg.eventId === event.id);
+          
+          if (eventRegistration) {
+            setIsVolunteering(true);
+            setSelectedVolunteerRole(eventRegistration.role);
+          }
+        } catch (error) {
+          console.error('Error checking volunteer status:', error);
+        }
+      }
+    };
+
+    checkVolunteerStatus();
+  }, [user?.id, event?.id]);
 
   const getEventTypeColor = (type) => {
     switch (type) {
@@ -66,10 +105,80 @@ export default function EventDetailsScreen({ navigation, route }) {
 
   const handleRSVP = () => {
     setIsRSVP(!isRSVP);
+    Alert.alert(
+      'RSVP Updated',
+      isRSVP ? 'You have cancelled your RSVP for this event.' : 'You have successfully RSVP\'d for this event!',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleDonation = () => {
+    navigation.navigate('Donations');
   };
 
   const handleVolunteer = () => {
     setShowVolunteerModal(true);
+  };
+
+  const handleVolunteerRoleSelect = async (role) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please log in to volunteer for events.');
+      return;
+    }
+
+    try {
+      await registerVolunteer(
+        event.id,
+        user.id,
+        user.name || user.displayName || 'User',
+        user.email || '',
+        role
+      );
+      
+      setSelectedVolunteerRole(role);
+      setIsVolunteering(true);
+      setShowVolunteerModal(false);
+      
+      Alert.alert(
+        'Volunteer Registration Successful!',
+        `Thank you for volunteering as ${role}! The admin has been notified and you will be contacted with more details.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error registering volunteer:', error);
+      Alert.alert(
+        'Registration Error',
+        error.message || 'Failed to register as volunteer. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleCancelVolunteer = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please log in to manage volunteer registrations.');
+      return;
+    }
+
+    try {
+      await cancelVolunteerRegistration(event.id, user.id, selectedVolunteerRole);
+      
+      setIsVolunteering(false);
+      setSelectedVolunteerRole('');
+      
+      Alert.alert(
+        'Volunteer Registration Cancelled',
+        'You have successfully cancelled your volunteer registration for this event.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error cancelling volunteer registration:', error);
+      Alert.alert(
+        'Cancellation Error',
+        'Failed to cancel volunteer registration. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
@@ -92,37 +201,37 @@ export default function EventDetailsScreen({ navigation, route }) {
         {/* Hero Image */}
         <View style={styles.heroSection}>
           <Image 
-            source={event.image}
+            source={event.image || require('../../../assets/images/events-placeholder.png')}
             style={styles.heroImage}
             resizeMode="cover"
           />
           <View style={styles.heroOverlay} />
           <View style={styles.eventTypeBadge}>
-            <Ionicons name={getEventTypeIcon(event.type)} size={16} color="#fff" />
-            <Text style={styles.eventTypeText}>{event.type.toUpperCase()}</Text>
+            <Ionicons name={getEventTypeIcon(event?.type)} size={16} color="#fff" />
+            <Text style={styles.eventTypeText}>{(event.type || 'event').toUpperCase()}</Text>
           </View>
         </View>
 
         {/* Event Details Card */}
         <View style={styles.detailsCard}>
-          <Text style={styles.eventTitle}>{event.title}</Text>
+          <Text style={styles.eventTitle}>{event.title || event.name || 'Event'}</Text>
           
           <View style={styles.eventMeta}>
             <View style={styles.metaItem}>
               <Ionicons name="calendar" size={20} color="#6699CC" />
-              <Text style={styles.metaText}>{formatDate(event.date)}</Text>
+              <Text style={styles.metaText}>{formatDate(event.date || event.startTime || new Date())}</Text>
             </View>
             <View style={styles.metaItem}>
               <Ionicons name="time" size={20} color="#6699CC" />
-              <Text style={styles.metaText}>{event.time}</Text>
+              <Text style={styles.metaText}>{event.time || 'TBD'}</Text>
             </View>
             <View style={styles.metaItem}>
               <Ionicons name="location" size={20} color="#6699CC" />
-              <Text style={styles.metaText}>{event.location}</Text>
+              <Text style={styles.metaText}>{event.location || 'Location TBD'}</Text>
             </View>
           </View>
 
-          <Text style={styles.description}>{event.description}</Text>
+          <Text style={styles.description}>{event.description || 'No description available.'}</Text>
 
           {/* Attendance */}
           <View style={styles.attendanceSection}>
@@ -132,12 +241,12 @@ export default function EventDetailsScreen({ navigation, route }) {
                 <View 
                   style={[
                     styles.attendanceFill, 
-                    { width: `${(event.attendees / event.maxAttendees) * 100}%` }
+                    { width: `${((event.attendees || 0) / (event.maxAttendees || 100)) * 100}%` }
                   ]} 
                 />
               </View>
               <Text style={styles.attendanceText}>
-                {event.attendees} of {event.maxAttendees} spots filled
+                {event.attendees || 0} of {event.maxAttendees || 100} spots filled
               </Text>
             </View>
           </View>
@@ -166,16 +275,52 @@ export default function EventDetailsScreen({ navigation, route }) {
             </Text>
           </TouchableOpacity>
 
-          {event.needsVolunteers && (
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={handleVolunteer}
-            >
-              <Ionicons name="people" size={24} color="#FFCC00" />
-              <Text style={styles.actionButtonText}>Volunteer</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.donationButton]}
+            onPress={handleDonation}
+          >
+            <Ionicons name="heart" size={24} color="#E74C3C" />
+            <Text style={styles.actionButtonText}>Donate</Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Volunteer Section */}
+        {(event?.needsVolunteers || event?.volunteerRoles?.length > 0) && (
+          <View style={styles.volunteerSection}>
+            <Text style={styles.sectionTitle}>Volunteer Opportunities</Text>
+            
+            {isVolunteering ? (
+              <View style={styles.volunteerStatusCard}>
+                <View style={styles.volunteerStatusHeader}>
+                  <Ionicons name="checkmark-circle" size={24} color="#27AE60" />
+                  <Text style={styles.volunteerStatusTitle}>You're Volunteering!</Text>
+                </View>
+                <Text style={styles.volunteerRoleText}>Role: {selectedVolunteerRole}</Text>
+                <TouchableOpacity 
+                  style={styles.cancelVolunteerButton}
+                  onPress={handleCancelVolunteer}
+                >
+                  <Text style={styles.cancelVolunteerButtonText}>Cancel Volunteer</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <TouchableOpacity 
+                  style={styles.volunteerButton}
+                  onPress={handleVolunteer}
+                >
+                  <Ionicons name="people" size={24} color="#FFCC00" />
+                  <Text style={styles.volunteerButtonText}>Volunteer for this Event</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#FFCC00" />
+                </TouchableOpacity>
+                
+                <Text style={styles.volunteerSubtext}>
+                  Tap to select from available volunteer roles
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Additional Info */}
         <View style={styles.additionalInfo}>
@@ -212,6 +357,48 @@ export default function EventDetailsScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Volunteer Role Selection Modal */}
+      <Modal
+        visible={showVolunteerModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowVolunteerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Volunteer Role</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowVolunteerModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalDescription}>
+                Choose a volunteer role for this event:
+              </Text>
+              
+              {(event.volunteerRoles || []).map((role, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.volunteerRoleOption}
+                  onPress={() => handleVolunteerRoleSelect(role)}
+                >
+                  <View style={styles.volunteerRoleInfo}>
+                    <Ionicons name="person" size={20} color="#FFCC00" />
+                    <Text style={styles.volunteerRoleText}>{role}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -384,6 +571,139 @@ const styles = StyleSheet.create({
   },
   actionButtonTextActive: {
     color: '#fff',
+  },
+  donationButton: {
+    borderWidth: 2,
+    borderColor: '#E74C3C',
+  },
+  volunteerSection: {
+    backgroundColor: '#fff',
+    margin: 20,
+    borderRadius: 20,
+    padding: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    marginBottom: 20,
+  },
+  volunteerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF8E1',
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#FFCC00',
+    gap: 12,
+  },
+  volunteerButtonText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  volunteerSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  volunteerStatusCard: {
+    backgroundColor: '#E8F5E8',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#27AE60',
+  },
+  volunteerStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  volunteerStatusTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#27AE60',
+  },
+  volunteerRoleText: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 15,
+  },
+  cancelVolunteerButton: {
+    backgroundColor: '#E74C3C',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  cancelVolunteerButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2A37',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: '#4B5563',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  volunteerRoleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  volunteerRoleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   additionalInfo: {
     backgroundColor: '#fff',

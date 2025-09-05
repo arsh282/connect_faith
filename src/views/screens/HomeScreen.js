@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
     ScrollView,
     StatusBar,
