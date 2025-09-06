@@ -2,11 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
     FlatList,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNotifications } from '../../context/NotificationsContext';
 
 const NotificationScreen = ({ navigation }) => {
@@ -35,7 +37,10 @@ const NotificationScreen = ({ navigation }) => {
     }
     
     // Navigate based on notification type
-    if (notification.type === 'event' && notification.eventId) {
+    if (notification.type === 'rsvp' && notification.memberId) {
+      console.log('🔔 Navigating to member details for RSVP:', notification.memberId);
+      navigation.navigate('MemberDetails', { notification });
+    } else if (notification.type === 'event' && notification.eventId) {
       console.log('🔔 Navigating to event details:', notification.eventId);
       navigation.navigate('EventDetails', { eventId: notification.eventId });
     }
@@ -77,12 +82,17 @@ const NotificationScreen = ({ navigation }) => {
       <View style={styles.notificationContent}>
         <View style={styles.notificationHeader}>
           <Ionicons 
-            name={item.type === 'event' ? 
-              (item.isReminder ? 'calendar' : 'calendar-outline') : 
-              'notifications-outline'
+            name={
+              item.type === 'rsvp' ? 'checkmark-circle-outline' :
+              item.type === 'event' ? 
+                (item.isReminder ? 'calendar' : 'calendar-outline') : 
+                'notifications-outline'
             } 
             size={20} 
-            color={item.read ? '#888' : '#6699CC'}
+            color={
+              item.type === 'rsvp' ? (item.read ? '#888' : '#27AE60') :
+              item.read ? '#888' : '#6699CC'
+            }
           />
           <Text style={[
             styles.notificationTitle, 
@@ -108,7 +118,8 @@ const NotificationScreen = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -141,7 +152,7 @@ const NotificationScreen = ({ navigation }) => {
           contentContainerStyle={styles.listContent}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -158,8 +169,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    elevation: 2,
+    borderBottomColor: '#e9ecef',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   headerTitle: {
     fontSize: 18,
@@ -186,14 +201,19 @@ const styles = StyleSheet.create({
   },
   notificationItem: {
     flexDirection: 'row',
-    padding: 15,
-    borderRadius: 10,
-    marginVertical: 5,
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 6,
     backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   unreadNotification: {
-    backgroundColor: 'rgba(102, 153, 204, 0.1)',
-    borderLeftWidth: 3,
+    backgroundColor: '#f8f9ff',
+    borderLeftWidth: 4,
     borderLeftColor: '#6699CC',
   },
   readNotification: {

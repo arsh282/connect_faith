@@ -21,6 +21,52 @@ const mockUsers = [
     firstName: 'Admin',
     lastName: 'User',
     role: 'admin'
+  },
+  // Default member accounts
+  {
+    id: 'member-001',
+    email: 'member@member.com',
+    password: 'password',
+    firstName: 'John',
+    lastName: 'Smith',
+    role: 'Member',
+    DOB: '1990-01-01'
+  },
+  {
+    id: 'member-002',
+    email: 'jane.doe@example.com',
+    password: 'password',
+    firstName: 'Jane',
+    lastName: 'Doe',
+    role: 'Member',
+    DOB: '1985-05-15'
+  },
+  {
+    id: 'member-003',
+    email: 'mike.johnson@example.com',
+    password: 'password',
+    firstName: 'Mike',
+    lastName: 'Johnson',
+    role: 'Member',
+    DOB: '1992-08-22'
+  },
+  {
+    id: 'member-004',
+    email: 'sarah.wilson@example.com',
+    password: 'password',
+    firstName: 'Sarah',
+    lastName: 'Wilson',
+    role: 'Member',
+    DOB: '1988-12-10'
+  },
+  {
+    id: 'member-005',
+    email: 'david.brown@example.com',
+    password: 'password',
+    firstName: 'David',
+    lastName: 'Brown',
+    role: 'Member',
+    DOB: '1995-03-18'
   }
 ];
 
@@ -37,7 +83,7 @@ const defaultMockEvents = [
     imageUrl: null,
     status: 'UPCOMING',
     maxAttendees: 200,
-    attendees: [],
+    attendees: ['member-001', 'member-002', 'member-003'], // Sample RSVPs
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -52,7 +98,7 @@ const defaultMockEvents = [
     imageUrl: null,
     status: 'UPCOMING',
     maxAttendees: 50,
-    attendees: [],
+    attendees: ['member-001', 'member-004'], // Sample RSVPs
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
@@ -142,9 +188,13 @@ export const mockApiService = {
         throw new Error('Email and password are required');
       }
 
-      // Find user
-      const user = mockUsers.find(u => u.email === email);
+      // Debug logging to see all available users
+      console.log('🎭 Mock API: Available users:', mockUsers.map(u => u.email));
+
+      // Find user - case insensitive email comparison
+      const user = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (!user) {
+        console.log('🎭 Mock API: No user found with email:', email);
         throw new Error('User not found');
       }
 
@@ -483,9 +533,22 @@ export const mockApiService = {
           await AsyncStorage.setItem('mockEvents', JSON.stringify(mockEvents));
           console.log('🎭 Mock API: Initialized storage with default events');
         }
+        
+        // Ensure we always have at least the default events
+        if (mockEvents.length === 0) {
+          mockEvents = [...defaultMockEvents];
+          await AsyncStorage.setItem('mockEvents', JSON.stringify(mockEvents));
+          console.log('🎭 Mock API: Re-initialized storage with default events');
+        }
       } catch (err) {
         console.error('Error loading events from storage:', err);
         mockEvents = [...defaultMockEvents];
+        // Try to save defaults to storage
+        try {
+          await AsyncStorage.setItem('mockEvents', JSON.stringify(mockEvents));
+        } catch (saveErr) {
+          console.error('Error saving default events to storage:', saveErr);
+        }
       }
       
       // Apply filters if provided
@@ -535,24 +598,34 @@ export const mockApiService = {
           const storedEvents = JSON.parse(eventsJson);
           mockEvent = storedEvents.find(event => event.id === eventId);
           console.log('🎭 Mock API: Found event in storage:', !!mockEvent);
+        } else {
+          // If no events in storage, try to find in default events
+          mockEvent = defaultMockEvents.find(event => event.id === eventId);
+          console.log('🎭 Mock API: Found event in default events:', !!mockEvent);
         }
       } catch (err) {
         console.error('Error finding event in storage:', err);
+        // Try to find in default events as fallback
+        mockEvent = defaultMockEvents.find(event => event.id === eventId);
       }
       
       // If not found, return a sample event
       if (!mockEvent) {
+        console.log('🎭 Mock API: Event not found, creating sample event');
         mockEvent = {
           id: eventId,
           name: 'Sample Event',
+          title: 'Sample Event',
           description: 'This is a sample event description',
           categoryId: '1',
           startTime: new Date(Date.now() + 86400000).toISOString(),
           endTime: new Date(Date.now() + 86400000 + 7200000).toISOString(),
+          date: new Date(Date.now() + 86400000).toISOString(),
           location: 'Main Sanctuary',
           imageUrl: null,
           status: 'UPCOMING',
           maxAttendees: 200,
+          attendees: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -562,6 +635,283 @@ export const mockApiService = {
       return { success: true, data: response };
     } catch (error) {
       console.log('🎭 Mock API: Get event details failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Mock RSVP for event
+  rsvpEvent: async (eventId, memberId, token) => {
+    try {
+      console.log('🎭 Mock API: RSVP for event:', eventId, 'by member:', memberId);
+      
+      // Get events from storage
+      let storedEvents = [];
+      try {
+        const eventsJson = await AsyncStorage.getItem('mockEvents');
+        if (eventsJson) {
+          storedEvents = JSON.parse(eventsJson);
+        } else {
+          // If no events in storage, use default events and save them
+          storedEvents = [...defaultMockEvents];
+          await AsyncStorage.setItem('mockEvents', JSON.stringify(storedEvents));
+          console.log('🎭 Mock API: Initialized storage with default events for RSVP');
+        }
+      } catch (err) {
+        console.error('Error loading events from storage:', err);
+        storedEvents = [...defaultMockEvents];
+      }
+      
+      // Find the event
+      const eventIndex = storedEvents.findIndex(event => event.id === eventId);
+      if (eventIndex === -1) {
+        throw new Error('Event not found');
+      }
+      
+      const event = storedEvents[eventIndex];
+      
+      // Check if member is already RSVP'd
+      const isAlreadyRSVPd = event.attendees && event.attendees.includes(memberId);
+      
+      if (isAlreadyRSVPd) {
+        // Remove RSVP
+        event.attendees = event.attendees.filter(id => id !== memberId);
+        console.log('🎭 Mock API: Removed RSVP for member:', memberId);
+      } else {
+        // Add RSVP
+        if (!event.attendees) {
+          event.attendees = [];
+        }
+        event.attendees.push(memberId);
+        console.log('🎭 Mock API: Added RSVP for member:', memberId);
+      }
+      
+      // Update the event in storage
+      storedEvents[eventIndex] = {
+        ...event,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await AsyncStorage.setItem('mockEvents', JSON.stringify(storedEvents));
+      
+      const response = await mockApiService.simulateApiCall({
+        success: true,
+        eventId: eventId,
+        memberId: memberId,
+        isRSVPd: !isAlreadyRSVPd,
+        attendanceCount: event.attendees.length,
+        message: isAlreadyRSVPd ? 'RSVP cancelled successfully' : 'RSVP successful'
+      });
+      
+      return { success: true, data: response };
+    } catch (error) {
+      console.log('🎭 Mock API: RSVP failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Mock create notification
+  createNotification: async (notificationData, token) => {
+    try {
+      console.log('🎭 Mock API: Creating notification:', notificationData);
+      
+      // Get existing notifications from storage
+      let storedNotifications = [];
+      try {
+        const notificationsJson = await AsyncStorage.getItem('mockNotifications');
+        storedNotifications = notificationsJson ? JSON.parse(notificationsJson) : [];
+      } catch (err) {
+        console.error('Error loading notifications from storage:', err);
+      }
+      
+      // Create new notification
+      const newNotification = {
+        id: `notification_${Date.now()}`,
+        ...notificationData,
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      
+      // Add to stored notifications
+      storedNotifications.push(newNotification);
+      
+      // Keep only last 100 notifications to prevent storage overflow
+      if (storedNotifications.length > 100) {
+        storedNotifications = storedNotifications.slice(-100);
+      }
+      
+      // Save back to storage
+      await AsyncStorage.setItem('mockNotifications', JSON.stringify(storedNotifications));
+      
+      // Also add to broadcast notifications for real-time updates
+      try {
+        const broadcastKey = 'broadcast_notifications';
+        let broadcastNotifications = [];
+        const storedBroadcasts = await AsyncStorage.getItem(broadcastKey);
+        broadcastNotifications = storedBroadcasts ? JSON.parse(storedBroadcasts) : [];
+        
+        broadcastNotifications.push(newNotification);
+        
+        // Keep only last 50 broadcast notifications
+        if (broadcastNotifications.length > 50) {
+          broadcastNotifications = broadcastNotifications.slice(-50);
+        }
+        
+        await AsyncStorage.setItem(broadcastKey, JSON.stringify(broadcastNotifications));
+        console.log('🎭 Mock API: Added notification to broadcast storage');
+      } catch (err) {
+        console.error('Error saving to broadcast storage:', err);
+      }
+      
+      const response = await mockApiService.simulateApiCall({
+        success: true,
+        notification: newNotification,
+        message: 'Notification created successfully'
+      });
+      
+      return { success: true, data: response };
+    } catch (error) {
+      console.log('🎭 Mock API: Create notification failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Mock get all members
+  getAllMembers: async (token) => {
+    try {
+      console.log('🎭 Mock API: Getting all members');
+      
+      // Filter out admin users and return only members
+      const members = mockUsers.filter(user => user.role === 'Member');
+      
+      const response = await mockApiService.simulateApiCall(members);
+      return { success: true, data: response };
+    } catch (error) {
+      console.log('🎭 Mock API: Get all members failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Mock get event RSVP details (all members with their RSVP status for a specific event)
+  getEventRSVPDetails: async (eventId, token) => {
+    try {
+      console.log('🎭 Mock API: Getting RSVP details for event:', eventId);
+      
+      // Get the event details
+      const eventResponse = await mockApiService.getEventDetails(eventId, token);
+      if (!eventResponse.success) {
+        throw new Error('Event not found');
+      }
+      
+      const event = eventResponse.data;
+      const rsvpMemberIds = event.attendees || [];
+      
+      // Get all members
+      const membersResponse = await mockApiService.getAllMembers(token);
+      if (!membersResponse.success) {
+        throw new Error('Failed to get members');
+      }
+      
+      const allMembers = membersResponse.data;
+      
+      // Create RSVP details for each member
+      const rsvpDetails = allMembers.map(member => ({
+        id: member.id,
+        name: `${member.firstName} ${member.lastName}`,
+        email: member.email,
+        status: rsvpMemberIds.includes(member.id) ? 'Attending' : 'Pending',
+        rsvpDate: rsvpMemberIds.includes(member.id) 
+          ? new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+          : null
+      }));
+      
+      const response = await mockApiService.simulateApiCall({
+        eventId: eventId,
+        eventName: event.name || event.title,
+        totalMembers: allMembers.length,
+        attendingCount: rsvpMemberIds.length,
+        pendingCount: allMembers.length - rsvpMemberIds.length,
+        rsvpDetails: rsvpDetails
+      });
+      
+      return { success: true, data: response };
+    } catch (error) {
+      console.log('🎭 Mock API: Get event RSVP details failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Mock get events with RSVP counts
+  getEventsWithRSVPCounts: async (token) => {
+    try {
+      console.log('🎭 Mock API: Getting events with RSVP counts');
+      
+      // Get all events
+      const eventsResponse = await mockApiService.getEvents(token);
+      if (!eventsResponse.success) {
+        throw new Error('Failed to get events');
+      }
+      
+      const events = eventsResponse.data;
+      
+      // Add RSVP counts to each event
+      const eventsWithCounts = events.map(event => ({
+        ...event,
+        rsvpCount: (event.attendees || []).length,
+        totalMembers: mockUsers.filter(user => user.role === 'Member').length
+      }));
+      
+      const response = await mockApiService.simulateApiCall(eventsWithCounts);
+      return { success: true, data: response };
+    } catch (error) {
+      console.log('🎭 Mock API: Get events with RSVP counts failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Mock create notifications for all members when an event is created
+  createEventNotificationsForAllMembers: async (event, token) => {
+    try {
+      console.log('🎭 Mock API: Creating event notifications for all members:', event.name || event.title);
+      
+      // Get all members (exclude admin users)
+      const members = mockUsers.filter(user => user.role === 'Member');
+      console.log('🎭 Mock API: Found members to notify:', members.length);
+      
+      const eventTitle = event.name || event.title;
+      const eventDate = event.startTime || event.date;
+      
+      // Create notification for each member
+      for (const member of members) {
+        const notificationData = {
+          type: 'event',
+          title: `New Event: ${eventTitle}`,
+          message: `A new event "${eventTitle}" has been created. ${event.description ? event.description.substring(0, 100) + '...' : 'Check it out!'}`,
+          eventId: event.id,
+          eventDate: eventDate,
+          isReminder: false,
+          memberId: member.id,
+          eventDetails: {
+            title: eventTitle,
+            date: eventDate,
+            location: event.location || 'TBD',
+            description: event.description || ''
+          }
+        };
+        
+        // Create individual notification for this member
+        await mockApiService.createNotification(notificationData, token);
+        console.log('🎭 Mock API: Created notification for member:', member.firstName, member.lastName);
+      }
+      
+      const response = await mockApiService.simulateApiCall({
+        success: true,
+        message: `Notifications sent to ${members.length} members`,
+        memberCount: members.length
+      });
+      
+      return { success: true, data: response };
+    } catch (error) {
+      console.log('🎭 Mock API: Create event notifications for all members failed:', error.message);
       return { success: false, error: error.message };
     }
   }

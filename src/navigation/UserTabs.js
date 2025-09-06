@@ -9,6 +9,7 @@ import DonationsScreen from '../views/screens/DonationsScreen';
 import EventDetailsScreen from '../views/screens/EventDetailsScreen';
 import EventsCalendarScreen from '../views/screens/EventsCalendarScreen';
 import HomeScreen from '../views/screens/HomeScreen';
+import MemberDetailsScreen from '../views/screens/MemberDetailsScreen';
 import NotificationCenterScreen from '../views/screens/NotificationCenterScreen';
 import NotificationScreen from '../views/screens/NotificationScreen';
 import PrayerWallScreen from '../views/screens/PrayerWallScreen';
@@ -36,6 +37,7 @@ function HomeStack() {
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="PrayerWall" component={PrayerWallScreen} />
       <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+      <Stack.Screen name="MemberDetails" component={MemberDetailsScreen} />
     </Stack.Navigator>
   );
 }

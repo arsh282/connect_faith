@@ -273,4 +273,36 @@ export const apiService = {
       return { success: false, error: error.message };
     }
   },
+
+  // RSVP for event
+  rsvpEvent: async (eventId, memberId, token) => {
+    try {
+      const response = await apiService.makeRequest(API_CONFIG.ENDPOINTS.RSVP_EVENT, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ memberId }),
+      }, { id: eventId });
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Create notification
+  createNotification: async (notificationData, token) => {
+    try {
+      const response = await apiService.makeRequest(API_CONFIG.ENDPOINTS.CREATE_NOTIFICATION, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(notificationData),
+      });
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
 };

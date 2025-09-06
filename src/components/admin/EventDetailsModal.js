@@ -32,6 +32,26 @@ const EventDetailsModal = ({ event, visible, onClose, onEdit, onDelete }) => {
     });
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'UPCOMING': return '#4A90E2';
+      case 'ONGOING': return '#27AE60';
+      case 'COMPLETED': return '#95A5A6';
+      case 'CANCELLED': return '#E74C3C';
+      default: return '#4A90E2';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'UPCOMING': return 'time-outline';
+      case 'ONGOING': return 'play-circle-outline';
+      case 'COMPLETED': return 'checkmark-circle-outline';
+      case 'CANCELLED': return 'close-circle-outline';
+      default: return 'time-outline';
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -41,7 +61,15 @@ const EventDetailsModal = ({ event, visible, onClose, onEdit, onDelete }) => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Event Details</Text>
+            <View style={styles.modalTitleContainer}>
+              <Text style={styles.modalTitle}>Event Details</Text>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.status || 'UPCOMING') + '20' }]}>
+                <Ionicons name={getStatusIcon(event.status || 'UPCOMING')} size={14} color={getStatusColor(event.status || 'UPCOMING')} />
+                <Text style={[styles.statusText, { color: getStatusColor(event.status || 'UPCOMING') }]}>
+                  {event.status || 'UPCOMING'}
+                </Text>
+              </View>
+            </View>
             <TouchableOpacity 
               onPress={onClose}
               style={styles.closeButton}
@@ -51,36 +79,55 @@ const EventDetailsModal = ({ event, visible, onClose, onEdit, onDelete }) => {
           </View>
           
           <ScrollView style={styles.modalContent}>
-            <Text style={styles.eventTitle}>{event.name || event.title}</Text>
-            
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={20} color="#4A90E2" style={styles.infoIcon} />
-              <Text style={styles.infoText}>{formatDate(eventDate)}</Text>
+            <View style={styles.eventHeader}>
+              <Text style={styles.eventTitle}>{event.name || event.title}</Text>
             </View>
             
-            <View style={styles.infoRow}>
-              <Ionicons name="time-outline" size={20} color="#4A90E2" style={styles.infoIcon} />
-              <Text style={styles.infoText}>
-                {formatTime(eventDate)} - {eventEndDate ? formatTime(eventEndDate) : 'TBD'}
-              </Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Ionicons name="location-outline" size={20} color="#4A90E2" style={styles.infoIcon} />
-              <Text style={styles.infoText}>{event.location || 'No location specified'}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Ionicons name="stats-chart-outline" size={20} color="#4A90E2" style={styles.infoIcon} />
-              <Text style={styles.infoText}>Status: {event.status || 'UPCOMING'}</Text>
-            </View>
-            
-            {event.maxAttendees && (
+            <View style={styles.infoSection}>
               <View style={styles.infoRow}>
-                <Ionicons name="people-outline" size={20} color="#4A90E2" style={styles.infoIcon} />
-                <Text style={styles.infoText}>Max Attendees: {event.maxAttendees}</Text>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="calendar-outline" size={18} color="#fff" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Date</Text>
+                  <Text style={styles.infoText}>{formatDate(eventDate)}</Text>
+                </View>
               </View>
-            )}
+              
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="time-outline" size={18} color="#fff" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Time</Text>
+                  <Text style={styles.infoText}>
+                    {formatTime(eventDate)} - {eventEndDate ? formatTime(eventEndDate) : 'TBD'}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="location-outline" size={18} color="#fff" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Location</Text>
+                  <Text style={styles.infoText}>{event.location || 'No location specified'}</Text>
+                </View>
+              </View>
+              
+              {event.maxAttendees && (
+                <View style={styles.infoRow}>
+                  <View style={styles.infoIconContainer}>
+                    <Ionicons name="people-outline" size={18} color="#fff" />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Capacity</Text>
+                    <Text style={styles.infoText}>Max {event.maxAttendees} attendees</Text>
+                  </View>
+                </View>
+              )}
+            </View>
             
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>Description</Text>
@@ -128,15 +175,33 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 15,
+    alignItems: 'flex-start',
+    paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+  },
+  modalTitleContainer: {
+    flex: 1,
+    marginRight: 12,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 8,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   closeButton: {
     padding: 5,
@@ -145,23 +210,45 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 20,
   },
+  eventHeader: {
+    marginBottom: 24,
+  },
   eventTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1F2A37',
-    marginBottom: 20,
+    lineHeight: 30,
+  },
+  infoSection: {
+    marginBottom: 24,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
+    gap: 12,
   },
-  infoIcon: {
-    marginRight: 10,
+  infoIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#4A90E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 2,
   },
   infoText: {
     fontSize: 16,
     color: '#333',
+    fontWeight: '500',
   },
   descriptionContainer: {
     marginTop: 20,
@@ -180,7 +267,7 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
     marginTop: 20,
     marginBottom: 40,
   },
@@ -189,27 +276,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
     flex: 1,
-    marginRight: 10,
+    gap: 8,
   },
   deleteButton: {
     backgroundColor: '#E25C4A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 8,
-    width: '30%',
+    borderRadius: 12,
+    flex: 1,
+    gap: 8,
   },
   buttonText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '600',
     fontSize: 16,
-    marginLeft: 5,
   },
 });
 

@@ -93,7 +93,32 @@ export const resetNotificationState = async (userId) => {
   }
 };
 
+// Debug function to check broadcast events
+export const debugBroadcastEvents = async () => {
+  try {
+    const broadcastKey = 'broadcast_events';
+    const storedEvents = await AsyncStorage.getItem(broadcastKey);
+    const broadcastEvents = storedEvents ? JSON.parse(storedEvents) : [];
+    
+    console.log('🔍 DEBUG: Broadcast events in storage:', broadcastEvents.length);
+    broadcastEvents.forEach((event, index) => {
+      console.log(`🔍 DEBUG: Event ${index + 1}:`, {
+        id: event.id,
+        name: event.name || event.title,
+        broadcastTime: event.broadcastTime,
+        createdAt: event.createdAt
+      });
+    });
+    
+    return broadcastEvents;
+  } catch (error) {
+    console.error('❌ DEBUG: Error checking broadcast events:', error);
+    return [];
+  }
+};
+
 export default {
   broadcastEvent,
-  resetNotificationState
+  resetNotificationState,
+  debugBroadcastEvents
 };

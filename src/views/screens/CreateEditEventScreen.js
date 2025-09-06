@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useState } from 'react';
 import {
@@ -12,6 +13,8 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNotifications } from '../../context/NotificationsContext';
 import { createEvent, getEventCategories, updateEvent } from '../../controllers/EventController';
 import { broadcastEvent } from '../../services/eventBroadcastService';
 
@@ -19,6 +22,9 @@ export default function CreateEditEventScreen({ navigation, route }) {
   // Get event data if we're editing an existing event
   const existingEvent = route.params?.event;
   const isEditing = !!existingEvent;
+  
+  // Get notifications context for sending instant notifications
+  const { broadcastEventNotification } = useNotifications();
   
   const [name, setName] = useState(existingEvent?.name || existingEvent?.title || '');
   const [description, setDescription] = useState(existingEvent?.description || '');
@@ -181,13 +187,20 @@ export default function CreateEditEventScreen({ navigation, route }) {
         // Create new event
         const newEvent = await createEvent(eventData);
         
-        // Double ensure broadcast by also calling broadcastEvent directly
+        // Send instant notifications to all members
         if (newEvent) {
-          console.log('Double ensuring event broadcast to all users');
+          console.log('🔔 Sending instant notifications to all members for new event:', newEvent.name || newEvent.title);
+          
+          // Broadcast the event for real-time updates
           await broadcastEvent(newEvent);
+          
+          // Send instant notification to all members
+          await broadcastEventNotification(newEvent);
+          
+          console.log('🔔 Instant notifications sent successfully');
         }
         
-        Alert.alert('Success', 'Event created successfully');
+        Alert.alert('Success', 'Event created successfully! All members have been notified.');
       }
       
       navigation.goBack();
@@ -233,111 +246,162 @@ export default function CreateEditEventScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionHeading}>Event Details</Text>
+        <View style={styles.header}>
+          <Text style={styles.screenTitle}>
+            {isEditing ? 'Edit Event' : 'Create New Event'}
+          </Text>
+          <Text style={styles.screenSubtitle}>
+            {isEditing ? 'Update event details' : 'Fill in the details for your new event'}
+          </Text>
+        </View>
+
         <View style={styles.card}>
-          <Text style={styles.label}>Event Name *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Youth Mission Trip"
-            value={name}
-            onChangeText={setName}
-            placeholderTextColor="#99A0A5"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Event Name *</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="calendar" size={20} color="#4A90E2" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Youth Mission Trip"
+                value={name}
+                onChangeText={setName}
+                placeholderTextColor="#99A0A5"
+              />
+            </View>
+          </View>
 
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            multiline
-            numberOfLines={4}
-            placeholder="A brief overview of the event"
-            value={description}
-            onChangeText={setDescription}
-            placeholderTextColor="#99A0A5"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Description</Text>
+            <View style={[styles.inputContainer, styles.textAreaContainer]}>
+              <Ionicons name="document-text" size={20} color="#4A90E2" style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                multiline
+                numberOfLines={4}
+                placeholder="A brief overview of the event"
+                value={description}
+                onChangeText={setDescription}
+                placeholderTextColor="#99A0A5"
+              />
+            </View>
+          </View>
 
-          <Text style={styles.label}>Category *</Text>
-          <TouchableOpacity
-            style={[styles.pickerButton, loadingCategories && styles.pickerButtonDisabled]}
-            onPress={() => !loadingCategories && setShowCategoryPicker(true)}
-            disabled={loadingCategories}
-          >
-            <Text style={[styles.pickerText, !categoryId && { color: '#99A0A5' }]}>
-              {loadingCategories ? 'Loading categories...' : getCategoryName(categoryId)}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Category *</Text>
+            <TouchableOpacity
+              style={[styles.pickerButton, loadingCategories && styles.pickerButtonDisabled]}
+              onPress={() => !loadingCategories && setShowCategoryPicker(true)}
+              disabled={loadingCategories}
+            >
+              <Ionicons name="folder" size={20} color="#4A90E2" style={styles.inputIcon} />
+              <Text style={[styles.pickerText, !categoryId && { color: '#99A0A5' }]}>
+                {loadingCategories ? 'Loading categories...' : getCategoryName(categoryId)}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#99A0A5" />
+            </TouchableOpacity>
+          </View>
 
-          <Text style={styles.label}>Start Time *</Text>
-          <TouchableOpacity
-            style={styles.pickerButton}
-            onPress={() => {
-              if (Platform.OS === 'android') {
-                setShowStartDateOnly(true);
-              } else {
-                setShowStartDatePicker(true);
-              }
-            }}
-          >
-            <Text style={styles.pickerText}>
-              {formatDateTime(startTime)}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.dateTimeRow}>
+            <View style={styles.dateTimeGroup}>
+              <Text style={styles.label}>Start Time *</Text>
+              <TouchableOpacity
+                style={styles.pickerButton}
+                onPress={() => {
+                  if (Platform.OS === 'android') {
+                    setShowStartDateOnly(true);
+                  } else {
+                    setShowStartDatePicker(true);
+                  }
+                }}
+              >
+                <Ionicons name="time" size={20} color="#4A90E2" style={styles.inputIcon} />
+                <Text style={styles.pickerText}>
+                  {formatDateTime(startTime)}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#99A0A5" />
+              </TouchableOpacity>
+            </View>
 
-          <Text style={styles.label}>End Time *</Text>
-          <TouchableOpacity
-            style={styles.pickerButton}
-            onPress={() => {
-              if (Platform.OS === 'android') {
-                setShowEndDateOnly(true);
-              } else {
-                setShowEndDatePicker(true);
-              }
-            }}
-          >
-            <Text style={styles.pickerText}>
-              {formatDateTime(endTime)}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.dateTimeGroup}>
+              <Text style={styles.label}>End Time *</Text>
+              <TouchableOpacity
+                style={styles.pickerButton}
+                onPress={() => {
+                  if (Platform.OS === 'android') {
+                    setShowEndDateOnly(true);
+                  } else {
+                    setShowEndDatePicker(true);
+                  }
+                }}
+              >
+                <Ionicons name="time" size={20} color="#4A90E2" style={styles.inputIcon} />
+                <Text style={styles.pickerText}>
+                  {formatDateTime(endTime)}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#99A0A5" />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          <Text style={styles.label}>Location</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Community Hall, 123 Church Rd"
-            value={location}
-            onChangeText={setLocation}
-            placeholderTextColor="#99A0A5"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Location</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="location" size={20} color="#4A90E2" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Community Hall, 123 Church Rd"
+                value={location}
+                onChangeText={setLocation}
+                placeholderTextColor="#99A0A5"
+              />
+            </View>
+          </View>
 
-          <Text style={styles.label}>Image URL</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="https://example.com/event-image.jpg"
-            value={imageUrl}
-            onChangeText={setImageUrl}
-            placeholderTextColor="#99A0A5"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Image URL</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="image" size={20} color="#4A90E2" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="https://example.com/event-image.jpg"
+                value={imageUrl}
+                onChangeText={setImageUrl}
+                placeholderTextColor="#99A0A5"
+              />
+            </View>
+          </View>
 
-          <Text style={styles.label}>Status</Text>
-          <TouchableOpacity
-            style={styles.pickerButton}
-            onPress={() => setShowStatusPicker(true)}
-          >
-            <Text style={styles.pickerText}>
-              {getStatusLabel(status)}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Status</Text>
+            <TouchableOpacity
+              style={styles.pickerButton}
+              onPress={() => setShowStatusPicker(true)}
+            >
+              <Ionicons name="flag" size={20} color="#4A90E2" style={styles.inputIcon} />
+              <Text style={styles.pickerText}>
+                {getStatusLabel(status)}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#99A0A5" />
+            </TouchableOpacity>
+          </View>
 
-          <Text style={styles.label}>Max Attendees</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="100"
-            value={maxAttendees}
-            onChangeText={setMaxAttendees}
-            keyboardType="numeric"
-            placeholderTextColor="#99A0A5"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Max Attendees</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="people" size={20} color="#4A90E2" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="100"
+                value={maxAttendees}
+                onChangeText={setMaxAttendees}
+                keyboardType="numeric"
+                placeholderTextColor="#99A0A5"
+              />
+            </View>
+          </View>
         </View>
 
         <TouchableOpacity style={[styles.primaryButton, saving && { opacity: 0.7 }]} onPress={handleSave} disabled={saving}>
@@ -543,7 +607,7 @@ export default function CreateEditEventScreen({ navigation, route }) {
           onChange={handleEndTimeChange}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -551,69 +615,100 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
-    paddingTop: Platform.OS === 'ios' ? 10 : 0,
   },
   content: {
     paddingHorizontal: 20,
     paddingTop: 10,
   },
+  header: {
+    marginBottom: 24,
+  },
   screenTitle: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '700',
-    marginBottom: 12,
+    marginBottom: 8,
     color: '#1F2A37',
   },
-  sectionHeading: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 12,
-    marginBottom: 12,
-    color: '#1F2A37',
+  screenSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 22,
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  inputGroup: {
+    marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    color: '#111827',
+    color: '#374151',
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  input: {
-    backgroundColor: '#F3F4F6',
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
     color: '#111827',
     fontSize: 16,
-    marginBottom: 12,
+    paddingVertical: 0,
+  },
+  textAreaContainer: {
+    alignItems: 'flex-start',
+    paddingVertical: 16,
   },
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
+    paddingVertical: 0,
   },
   pickerButton: {
-    backgroundColor: '#F3F4F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginBottom: 12,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
   pickerText: {
+    flex: 1,
     color: '#111827',
     fontSize: 16,
+    marginLeft: 12,
   },
   pickerButtonDisabled: {
     opacity: 0.6,
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  dateTimeGroup: {
+    flex: 1,
   },
   row: {
     flexDirection: 'row',
@@ -631,32 +726,37 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   primaryButton: {
-    backgroundColor: '#5B8EAD',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: '#4A90E2',
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: 'center',
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   destructiveButton: {
-    backgroundColor: '#B94A48',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: '#E74C3C',
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: 'center',
     marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   destructiveButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   modalOverlay: {

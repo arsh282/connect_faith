@@ -1,17 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Platform,
-    RefreshControl,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import EventDetailsModal from '../../components/admin/EventDetailsModal';
 import { deleteEvent, getEvents } from '../../controllers/EventController';
 
@@ -140,37 +140,116 @@ export default function EventManagementScreen({ navigation }) {
     const eventDate = item.startTime || item.date;
     const eventName = item.name || item.title;
     
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'UPCOMING': return '#4A90E2';
+        case 'ONGOING': return '#27AE60';
+        case 'COMPLETED': return '#95A5A6';
+        case 'CANCELLED': return '#E74C3C';
+        default: return '#4A90E2';
+      }
+    };
+
+    const getStatusIcon = (status) => {
+      switch (status) {
+        case 'UPCOMING': return 'time-outline';
+        case 'ONGOING': return 'play-circle-outline';
+        case 'COMPLETED': return 'checkmark-circle-outline';
+        case 'CANCELLED': return 'close-circle-outline';
+        default: return 'time-outline';
+      }
+    };
+    
     return (
       <TouchableOpacity 
         style={styles.eventCard}
         onPress={() => handleViewEvent(item)}
+        activeOpacity={0.8}
       >
-        <View style={styles.eventInfo}>
-          <Text style={styles.eventTitle}>{eventName}</Text>
-          <Text style={styles.eventDate}>{formatDate(eventDate)}</Text>
-          <Text style={styles.eventLocation}>{item.location || 'No location specified'}</Text>
-          <Text style={styles.eventStatus}>{item.status || 'UPCOMING'}</Text>
+        <View style={styles.eventCardHeader}>
+          <View style={styles.eventTitleContainer}>
+            <Text style={styles.eventTitle}>{eventName}</Text>
+            <View style={[styles.eventStatus, { backgroundColor: getStatusColor(item.status || 'UPCOMING') + '20' }]}>
+              <Ionicons name={getStatusIcon(item.status || 'UPCOMING')} size={14} color={getStatusColor(item.status || 'UPCOMING')} />
+              <Text style={[styles.eventStatusText, { color: getStatusColor(item.status || 'UPCOMING') }]}>
+                {item.status || 'UPCOMING'}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity 
+            style={styles.moreButton}
+            onPress={() => handleViewEvent(item)}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color="#999" />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.eventDetails}>
+          <View style={styles.eventDetailRow}>
+            <View style={styles.eventDetailIcon}>
+              <Ionicons name="calendar-outline" size={16} color="#4A90E2" />
+            </View>
+            <View style={styles.eventDetailContent}>
+              <Text style={styles.eventDetailLabel}>Date</Text>
+              <Text style={styles.eventDetailText}>{formatDate(eventDate)}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.eventDetailRow}>
+            <View style={styles.eventDetailIcon}>
+              <Ionicons name="location-outline" size={16} color="#4A90E2" />
+            </View>
+            <View style={styles.eventDetailContent}>
+              <Text style={styles.eventDetailLabel}>Location</Text>
+              <Text style={styles.eventDetailText}>{item.location || 'No location specified'}</Text>
+            </View>
+          </View>
+          
+          {item.maxAttendees && (
+            <View style={styles.eventDetailRow}>
+              <View style={styles.eventDetailIcon}>
+                <Ionicons name="people-outline" size={16} color="#4A90E2" />
+              </View>
+              <View style={styles.eventDetailContent}>
+                <Text style={styles.eventDetailLabel}>Capacity</Text>
+                <Text style={styles.eventDetailText}>Max {item.maxAttendees} attendees</Text>
+              </View>
+            </View>
+          )}
         </View>
         
         <View style={styles.eventActions}>
           <TouchableOpacity 
-            style={styles.actionButton} 
+            style={[styles.actionButton, styles.viewButton]} 
             onPress={(e) => {
-              e.stopPropagation(); // Prevent triggering the card's onPress
-              handleEditEvent(item);
+              e.stopPropagation();
+              handleViewEvent(item);
             }}
           >
-            <Ionicons name="create-outline" size={22} color="#4A90E2" />
+            <Ionicons name="eye-outline" size={18} color="#4A90E2" />
+            <Text style={styles.actionButtonText}>View</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.actionButton} 
+            style={[styles.actionButton, styles.editButton]} 
             onPress={(e) => {
-              e.stopPropagation(); // Prevent triggering the card's onPress
+              e.stopPropagation();
+              handleEditEvent(item);
+            }}
+          >
+            <Ionicons name="create-outline" size={18} color="#fff" />
+            <Text style={[styles.actionButtonText, styles.editButtonText]}>Edit</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.deleteButton]} 
+            onPress={(e) => {
+              e.stopPropagation();
               handleDeleteEvent(item.id, eventName);
             }}
           >
-            <Ionicons name="trash-outline" size={22} color="#E25C4A" />
+            <Ionicons name="trash-outline" size={18} color="#fff" />
+            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -178,7 +257,7 @@ export default function EventManagementScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#6699CC" />
       
       {/* Header */}
@@ -242,7 +321,7 @@ export default function EventManagementScreen({ navigation }) {
         onEdit={() => handleEditEvent(selectedEvent)}
         onDelete={() => selectedEvent && handleDeleteEvent(selectedEvent.id, selectedEvent.name || selectedEvent.title)}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -256,8 +335,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#6699CC',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingBottom: 16,
+    paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#5A8ABC',
@@ -311,48 +389,113 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   eventCard: {
-    flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  eventInfo: {
+  eventCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  eventTitleContainer: {
     flex: 1,
+    marginRight: 12,
   },
   eventTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1F2A37',
-    marginBottom: 6,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: '#4A90E2',
-    marginBottom: 4,
-  },
-  eventLocation: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 26,
   },
   eventStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  eventStatusText: {
     fontSize: 12,
-    color: '#10B981',
+    fontWeight: '600',
+  },
+  moreButton: {
+    padding: 4,
+  },
+  eventDetails: {
+    marginBottom: 16,
+  },
+  eventDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  eventDetailIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F0F4F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eventDetailContent: {
+    flex: 1,
+  },
+  eventDetailLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  eventDetailText: {
+    fontSize: 14,
+    color: '#1F2A37',
     fontWeight: '500',
   },
   eventActions: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: 8,
+    flexDirection: 'row',
+    gap: 8,
   },
   actionButton: {
-    padding: 8,
-    marginVertical: 4,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 6,
+  },
+  viewButton: {
+    backgroundColor: '#F0F4F8',
+    borderWidth: 1,
+    borderColor: '#4A90E2',
+  },
+  editButton: {
+    backgroundColor: '#4A90E2',
+  },
+  deleteButton: {
+    backgroundColor: '#E74C3C',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4A90E2',
+  },
+  editButtonText: {
+    color: '#fff',
+  },
+  deleteButtonText: {
+    color: '#fff',
   },
 });

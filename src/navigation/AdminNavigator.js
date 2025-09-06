@@ -5,7 +5,10 @@ import CreateEditEventScreen from '../views/screens/CreateEditEventScreen';
 import DonationReportsScreen from '../views/screens/DonationReportsScreen';
 import EventManagementScreen from '../views/screens/EventManagementScreen';
 import EventRegistrationsScreen from '../views/screens/EventRegistrationsScreen';
+import EventRSVPDetailsScreen from '../views/screens/EventRSVPDetailsScreen';
+import MemberDetailsScreen from '../views/screens/MemberDetailsScreen';
 import ModerationCenterScreen from '../views/screens/ModerationCenterScreen';
+import NotificationScreen from '../views/screens/NotificationScreen';
 import UploadEditSermonScreen from '../views/screens/UploadEditSermonScreen';
 import UserManagementScreen from '../views/screens/UserManagementScreen';
 import VolunteerManagementScreen from '../views/screens/VolunteerManagementScreen';
@@ -34,11 +37,14 @@ export default function AdminNavigator() {
       <Stack.Screen name="CreateEvent" component={CreateEditEventScreen} />
       <Stack.Screen name="EventManagement" component={EventManagementScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EventRegistrations" component={EventRegistrationsScreen} />
+      <Stack.Screen name="EventRSVPDetails" component={EventRSVPDetailsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="UploadSermon" component={UploadEditSermonScreen} />
       <Stack.Screen name="DonationReports" component={DonationReportsScreen} />
       <Stack.Screen name="UserManagement" component={UserManagementScreen} />
       <Stack.Screen name="ModerationCenter" component={ModerationCenterScreen} />
       <Stack.Screen name="VolunteerManagement" component={VolunteerManagementScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="MemberDetails" component={MemberDetailsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="NotificationScreen" component={NotificationScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

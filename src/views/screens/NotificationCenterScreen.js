@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    Platform,
+    RefreshControl,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -9,97 +9,94 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNotifications } from '../../context/NotificationsContext';
 
 export default function NotificationCenterScreen({ navigation }) {
-  const [notifications] = useState([
-    {
-      id: 1,
-      title: 'Youth Group Meeting Reminder',
-      description: 'Your Youth Group meeting starts in 15 minutes at the community hall. See you there!',
-      time: '2 min ago',
-      type: 'event',
-      unread: true,
-      icon: 'calendar-outline'
-    },
-    {
-      id: 2,
-      title: 'New Message from Sarah',
-      description: 'Sarah J. sent you a new message in the "Volunteer Team" group chat.',
-      time: '1 hour ago',
-      type: 'message',
-      unread: true,
-      icon: 'chatbubble-outline'
-    },
-    {
-      id: 3,
-      title: 'Important: Weekly Service Time Change',
-      description: 'Due to unforeseen circumstances, the weekly service time has been adjusted. Please check the Announcements section for details.',
-      time: '2 hours ago',
-      type: 'announcement',
-      unread: true,
-      icon: 'megaphone-outline'
-    },
-    {
-      id: 4,
-      title: 'Choir Practice Cancellation',
-      description: 'Choir practice for tonight, October 26th, has been cancelled. We will resume next week as scheduled.',
-      time: '5:00 PM',
-      type: 'event',
-      unread: false,
-      icon: 'calendar-outline'
-    },
-    {
-      id: 5,
-      title: 'App Update Available',
-      description: 'A new version of the Church Connect app is available with improved features and bug fixes.',
-      time: '2 days ago',
-      type: 'system',
-      unread: false,
-      icon: 'notifications-outline'
-    }
-  ]);
+  const { notifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const [refreshing, setRefreshing] = useState(false);
 
   const getIconColor = (type) => {
     switch (type) {
       case 'event': return '#4ECDC4';
       case 'message': return '#FF6B35';
-      case 'announcement': return '#45B7D1';
-      case 'system': return '#96CEB4';
-      default: return '#666';
+      case 'announcement': return '#4A90E2';
+      case 'system': return '#95A5A6';
+      default: return '#4A90E2';
     }
   };
 
+  const getIconName = (type) => {
+    switch (type) {
+      case 'event': return 'calendar-outline';
+      case 'message': return 'chatbubble-outline';
+      case 'announcement': return 'megaphone-outline';
+      case 'system': return 'notifications-outline';
+      default: return 'notifications-outline';
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    
+    const now = new Date();
+    const notificationTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - notificationTime) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+  };
+
   const renderNotification = (notification) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       key={notification.id}
-      style={styles.notificationCard}
-      activeOpacity={0.8}
+      style={[
+        styles.notificationCard,
+        !notification.read && styles.unreadNotification
+      ]}
       onPress={() => handleNotificationPress(notification)}
     >
       <View style={styles.notificationIcon}>
-        <Ionicons 
-          name={notification.icon} 
-          size={24} 
-          color={getIconColor(notification.type)} 
+        <Ionicons
+          name={getIconName(notification.type)}
+          size={24}
+          color={getIconColor(notification.type)}
         />
       </View>
+      
       <View style={styles.notificationContent}>
         <View style={styles.notificationHeader}>
-          <Text style={styles.notificationTitle}>{notification.title}</Text>
-          <View style={styles.notificationMeta}>
-            <Text style={styles.notificationTime}>{notification.time}</Text>
-            {notification.unread && (
-              <View style={styles.unreadIndicator} />
-            )}
-          </View>
+          <Text style={[
+            styles.notificationTitle,
+            !notification.read && styles.unreadTitle
+          ]}>
+            {notification.title}
+          </Text>
+          <Text style={styles.notificationTime}>
+            {formatTime(notification.timestamp)}
+          </Text>
         </View>
-        <Text style={styles.notificationDescription}>{notification.description}</Text>
+        
+        <Text style={styles.notificationDescription}>
+          {notification.message}
+        </Text>
+        
+        {!notification.read && (
+          <View style={styles.unreadIndicator} />
+        )}
       </View>
     </TouchableOpacity>
   );
 
-  const handleNotificationPress = (notification) => {
-    // Mark as read and navigate to appropriate screen
+  const handleNotificationPress = async (notification) => {
+    // Mark as read
+    if (!notification.read) {
+      await markAsRead(notification.id);
+    }
+    
+    // Navigate based on notification type
     if (notification.type === 'event') {
       navigation.navigate('Events');
     } else if (notification.type === 'message') {
@@ -109,13 +106,18 @@ export default function NotificationCenterScreen({ navigation }) {
     }
   };
 
-  const markAllAsRead = () => {
-    // In a real app, this would update the backend
-    console.log('Mark all as read');
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // The notifications will automatically refresh through the context
+    setTimeout(() => setRefreshing(false), 1000);
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
       {/* Header */}
@@ -127,15 +129,28 @@ export default function NotificationCenterScreen({ navigation }) {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity 
-          style={styles.markAllButton}
-          onPress={markAllAsRead}
-        >
-          <Text style={styles.markAllText}>Mark All Read</Text>
-        </TouchableOpacity>
+        {notifications.some(n => !n.read) && (
+          <TouchableOpacity 
+            style={styles.markAllButton}
+            onPress={handleMarkAllAsRead}
+          >
+            <Text style={styles.markAllText}>Mark All Read</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#6699CC']}
+            tintColor="#6699CC"
+          />
+        }
+      >
         {notifications.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={64} color="#ccc" />
@@ -150,7 +165,7 @@ export default function NotificationCenterScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -164,32 +179,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingBottom: 20,
+    paddingVertical: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   backButton: {
-    padding: 5,
+    padding: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#333',
+    flex: 1,
+    textAlign: 'center',
   },
   markAllButton: {
-    padding: 5,
+    padding: 8,
   },
   markAllText: {
     fontSize: 14,
-    color: '#1e3c72',
+    color: '#6699CC',
     fontWeight: '500',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   notificationsList: {
     gap: 12,
@@ -200,19 +221,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: 'transparent',
+  },
+  unreadNotification: {
+    borderLeftColor: '#6699CC',
+    backgroundColor: '#f8f9ff',
   },
   notificationIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0f4f8',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   notificationContent: {
     flex: 1,
@@ -221,33 +248,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   notificationTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#333',
     flex: 1,
-    marginRight: 12,
+    marginRight: 8,
   },
-  notificationMeta: {
-    alignItems: 'flex-end',
+  unreadTitle: {
+    fontWeight: '600',
+    color: '#1a1a1a',
   },
   notificationTime: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 4,
-  },
-  unreadIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFD700',
+    marginTop: 2,
   },
   notificationDescription: {
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  unreadIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#6699CC',
   },
   emptyState: {
     flex: 1,
@@ -256,18 +287,17 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyStateTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: '#333',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateDescription: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
+    paddingHorizontal: 40,
   },
 });
-
-

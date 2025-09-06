@@ -29,6 +29,10 @@ export const API_CONFIG = {
     UPDATE_EVENT: '/events/:id',
     DELETE_EVENT: '/events/:id',
     EVENT_CATEGORIES: '/events/categories',
+    RSVP_EVENT: '/mock/events/:id/rsvp',
+    
+    // Notification endpoints
+    CREATE_NOTIFICATION: '/mock/notifications',
     
     // Announcement endpoints
     ANNOUNCEMENTS: '/announcements',

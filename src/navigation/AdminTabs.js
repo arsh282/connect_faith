@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
+import NotificationBell from '../components/NotificationBell';
+import { useAuth } from '../context/CustomAuthContext';
 
 import AdminDashboardScreen from '../views/screens/AdminDashboardScreen';
 import DonationReportsScreen from '../views/screens/DonationReportsScreen';
@@ -13,8 +15,7 @@ import UserManagementScreen from '../views/screens/UserManagementScreen';
 const Tab = createBottomTabNavigator();
 
 export default function AdminTabs() {
-
-
+  const { logout } = useAuth();
 
   return (
     <Tab.Navigator
@@ -45,6 +46,11 @@ export default function AdminTabs() {
           fontWeight: '600',
           fontSize: 18,
         },
+        headerRight: () => (
+          <View style={{ marginRight: 16 }}>
+            <NotificationBell onLogout={logout} />
+          </View>
+        ),
         tabBarActiveTintColor: '#6699CC',
         tabBarInactiveTintColor: '#999999',
         tabBarStyle: {
@@ -98,7 +104,8 @@ export default function AdminTabs() {
         options={{ 
           tabBarLabel: 'Profile', 
           title: 'Admin Profile',
-          headerShown: false 
+          headerShown: false,
+          headerRight: () => null
         }}
       />
     </Tab.Navigator>

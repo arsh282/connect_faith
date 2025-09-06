@@ -22,7 +22,9 @@ export const NotificationsProvider = ({ children }) => {
       const refreshInterval = setInterval(() => {
         console.log('🔔 NotificationsContext: Refreshing notifications');
         loadNotifications();
-      }, 10000); // Check every 10 seconds
+        checkForBroadcastNotifications();
+        checkForMemberNotifications();
+      }, 3000); // Check every 3 seconds for faster updates
       
       // Clean up interval on unmount
       return () => clearInterval(refreshInterval);
@@ -53,6 +55,95 @@ export const NotificationsProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('❌ NotificationsContext: Failed to load notifications', error);
+    }
+  };
+
+  // Check for broadcast notifications (for real-time updates)
+  const checkForBroadcastNotifications = async () => {
+    try {
+      if (!userProfile?.id) return;
+      
+      // Only check for admin users
+      if (userProfile.role !== 'admin' && userProfile.role !== 'Admin') return;
+      
+      const broadcastKey = 'broadcast_notifications';
+      const storedBroadcasts = await AsyncStorage.getItem(broadcastKey);
+      
+      if (!storedBroadcasts) return;
+      
+      const broadcastNotifications = JSON.parse(storedBroadcasts);
+      console.log('🔔 NotificationsContext: Found broadcast notifications:', broadcastNotifications.length);
+      
+      // Get the last processed notification timestamp
+      const lastProcessedKey = `lastProcessedNotification_${userProfile.id}`;
+      const lastProcessed = await AsyncStorage.getItem(lastProcessedKey);
+      const lastProcessedTime = lastProcessed ? new Date(lastProcessed) : new Date(0);
+      
+      // Find new notifications since last check
+      const newNotifications = broadcastNotifications.filter(notification => {
+        const notificationTime = new Date(notification.timestamp);
+        return notificationTime > lastProcessedTime;
+      });
+      
+      console.log('🔔 NotificationsContext: Found new broadcast notifications:', newNotifications.length);
+      
+      // Add new notifications to user's notification list
+      for (const notification of newNotifications) {
+        await addNotification(notification);
+      }
+      
+      // Update last processed time
+      if (newNotifications.length > 0) {
+        const latestTime = Math.max(...newNotifications.map(n => new Date(n.timestamp).getTime()));
+        await AsyncStorage.setItem(lastProcessedKey, new Date(latestTime).toISOString());
+        console.log('🔔 NotificationsContext: Updated last processed time');
+      }
+    } catch (error) {
+      console.error('❌ NotificationsContext: Failed to check broadcast notifications', error);
+    }
+  };
+
+  // Check for member notifications (for members to receive instant notifications)
+  const checkForMemberNotifications = async () => {
+    try {
+      if (!userProfile?.id) return;
+      
+      // Only check for member users (not admin)
+      if (userProfile.role === 'admin' || userProfile.role === 'Admin') return;
+      
+      const broadcastKey = 'broadcast_notifications';
+      const storedBroadcasts = await AsyncStorage.getItem(broadcastKey);
+      
+      if (!storedBroadcasts) return;
+      
+      const broadcastNotifications = JSON.parse(storedBroadcasts);
+      
+      // Get the last processed notification timestamp for this member
+      const lastProcessedKey = `lastProcessedMemberNotification_${userProfile.id}`;
+      const lastProcessed = await AsyncStorage.getItem(lastProcessedKey);
+      const lastProcessedTime = lastProcessed ? new Date(lastProcessed) : new Date(0);
+      
+      // Find new notifications since last check
+      const newNotifications = broadcastNotifications.filter(notification => {
+        const notificationTime = new Date(notification.timestamp);
+        return notificationTime > lastProcessedTime;
+      });
+      
+      if (newNotifications.length > 0) {
+        console.log('🔔 NotificationsContext: Found new member notifications:', newNotifications.length);
+        
+        // Add new notifications to user's notification list
+        for (const notification of newNotifications) {
+          await addNotification(notification);
+        }
+        
+        // Update last processed time
+        const latestTime = Math.max(...newNotifications.map(n => new Date(n.timestamp).getTime()));
+        await AsyncStorage.setItem(lastProcessedKey, new Date(latestTime).toISOString());
+        console.log('🔔 NotificationsContext: Updated last processed member notification time');
+      }
+    } catch (error) {
+      console.error('❌ NotificationsContext: Failed to check member notifications', error);
     }
   };
 
@@ -252,6 +343,21 @@ export const NotificationsProvider = ({ children }) => {
       console.log('🔊 NotificationsContext: Broadcasting event notification:', eventTitle);
       console.log('🔊 NotificationsContext: Event details:', JSON.stringify(event));
       
+      // Import the mock API service to create notifications for all members
+      const { mockApiService } = require('../services/mockApi');
+      
+      // Create individual notifications for all members
+      try {
+        const notificationResponse = await mockApiService.createEventNotificationsForAllMembers(event, 'mock_token');
+        if (notificationResponse.success) {
+          console.log('🔊 NotificationsContext: Successfully created notifications for all members:', notificationResponse.data.memberCount);
+        } else {
+          console.error('❌ NotificationsContext: Failed to create notifications for all members:', notificationResponse.error);
+        }
+      } catch (apiError) {
+        console.error('❌ NotificationsContext: Error calling mock API for member notifications:', apiError);
+      }
+      
       // Save the event in a shared location that all users can access
       const broadcastKey = 'broadcast_events';
       let broadcastEvents = [];
@@ -312,6 +418,22 @@ export const NotificationsProvider = ({ children }) => {
     }
   };
 
+  // Debug function to check notification state
+  const debugNotifications = () => {
+    console.log('🔍 DEBUG: Current notifications:', notifications.length);
+    console.log('🔍 DEBUG: Unread count:', unreadCount);
+    console.log('🔍 DEBUG: User profile:', userProfile?.id, userProfile?.role);
+    notifications.forEach((notification, index) => {
+      console.log(`🔍 DEBUG: Notification ${index + 1}:`, {
+        id: notification.id,
+        title: notification.title,
+        type: notification.type,
+        read: notification.read,
+        timestamp: notification.timestamp
+      });
+    });
+  };
+
   return (
     <NotificationsContext.Provider
       value={{
@@ -323,7 +445,8 @@ export const NotificationsProvider = ({ children }) => {
         deleteNotification,
         clearAllNotifications,
         addEventNotification,
-        broadcastEventNotification
+        broadcastEventNotification,
+        debugNotifications
       }}
     >
       {children}

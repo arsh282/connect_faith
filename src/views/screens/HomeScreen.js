@@ -13,11 +13,13 @@ import BirthdayWish from '../../components/BirthdayWish';
 import NotificationBell from '../../components/NotificationBell';
 import { RoleIndicator, useRolePermissions } from '../../components/RoleBasedAccess';
 import { useAuth } from '../../context/CustomAuthContext';
-import { resetNotificationState } from '../../services/eventBroadcastService';
+import { useNotifications } from '../../context/NotificationsContext';
+import { debugBroadcastEvents, resetNotificationState } from '../../services/eventBroadcastService';
 import { useEventNotifications } from '../../services/eventNotificationService';
 
 const HomeScreen = ({ navigation }) => {
   const { userProfile, logout } = useAuth();
+  const { debugNotifications } = useNotifications();
   
   useEffect(() => {
     // Log user profile information for debugging birthday wish feature
@@ -123,6 +125,14 @@ const HomeScreen = ({ navigation }) => {
         alert('Failed to reset notifications');
       }
     }
+  };
+
+  // Function to debug notification system
+  const handleDebugNotifications = async () => {
+    console.log('🔍 DEBUG: Starting notification debug...');
+    debugNotifications();
+    await debugBroadcastEvents();
+    alert('Debug info logged to console. Check developer tools.');
   };
 
   const navigateToScreen = (screenName) => {
@@ -264,6 +274,12 @@ const HomeScreen = ({ navigation }) => {
               >
                 <Ionicons name="refresh" size={18} color="#fff" />
               </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.debugButton} 
+                onPress={handleDebugNotifications}
+              >
+                <Ionicons name="bug" size={18} color="#fff" />
+              </TouchableOpacity>
               <NotificationBell onLogout={handleLogout} />
             </View>
           )}
@@ -374,6 +390,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resetButton: {
+    marginRight: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  debugButton: {
     marginRight: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     width: 30,
