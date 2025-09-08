@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNotifications } from '../../context/NotificationsContext';
 
 const NotificationScreen = ({ navigation }) => {
@@ -108,11 +109,11 @@ const NotificationScreen = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         {unreadCount > 0 && (
@@ -141,7 +142,7 @@ const NotificationScreen = ({ navigation }) => {
           contentContainerStyle={styles.listContent}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -154,28 +155,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: '#6699CC',
     paddingVertical: 16,
     paddingHorizontal: 20,
+    paddingTop: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    elevation: 2,
+    borderBottomColor: '#6699CC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
     flex: 1,
     textAlign: 'center',
   },
   backButton: {
-    padding: 5,
+    padding: 10,
+    marginLeft: -10,
   },
   markAllButton: {
-    padding: 5,
+    padding: 10,
+    marginRight: -10,
   },
   markAllText: {
-    color: '#6699CC',
+    color: '#fff',
     fontWeight: '500',
   },
   notificationList: {
@@ -187,9 +195,14 @@ const styles = StyleSheet.create({
   notificationItem: {
     flexDirection: 'row',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 16,
     marginVertical: 5,
     backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   unreadNotification: {
     backgroundColor: 'rgba(102, 153, 204, 0.1)',
@@ -211,7 +224,7 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 16,
     marginLeft: 8,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
   notificationTime: {
     fontSize: 12,

@@ -36,7 +36,6 @@ export const createEvent = async (payload) => {
       payload.createdAt = new Date().toISOString();
     }
     
-    console.log('Creating event with payload:', payload);
     
     let createdEvent;
     
@@ -47,7 +46,6 @@ export const createEvent = async (payload) => {
       }
       
       createdEvent = result.data.event || result.data;
-      console.log('Event created successfully:', createdEvent);
     } else {
       const result = await apiService.createEvent(payload, token);
       if (!result.success) {
@@ -58,9 +56,7 @@ export const createEvent = async (payload) => {
     
     // Broadcast the event to all users
     try {
-      console.log('Broadcasting event to all users');
       await broadcastEvent(createdEvent);
-      console.log('Event broadcast successfully');
     } catch (broadcastError) {
       console.error('Error broadcasting event:', broadcastError);
       // We don't want to fail the event creation if broadcasting fails
@@ -102,7 +98,6 @@ export const updateEvent = async (id, payload) => {
       throw new Error('Event ID is required');
     }
     
-    console.log('Updating event with ID:', id);
     
     // Make sure we have required fields for notification system
     if (!payload.title && payload.name) {
@@ -137,7 +132,6 @@ export const updateEvent = async (id, payload) => {
             return event;
           });
           await AsyncStorage.setItem(broadcastKey, JSON.stringify(updatedEvents));
-          console.log('Updated event in broadcast events');
         }
       } catch (err) {
         console.error('Error updating event in broadcasts:', err);
@@ -163,7 +157,6 @@ export const deleteEvent = async (id) => {
       throw new Error('Event ID is required');
     }
     
-    console.log('Deleting event with ID:', id);
     const token = getAuthToken();
     
     if (useMockApi()) {
@@ -181,7 +174,6 @@ export const deleteEvent = async (id) => {
           const broadcastEvents = JSON.parse(storedEvents);
           const filteredEvents = broadcastEvents.filter(event => event.id !== id);
           await AsyncStorage.setItem(broadcastKey, JSON.stringify(filteredEvents));
-          console.log('Removed event from broadcast events');
         }
       } catch (err) {
         console.error('Error removing event from broadcasts:', err);
@@ -226,7 +218,6 @@ export const getEventCategories = async () => {
 
 export const getEvents = async (filters = {}) => {
   try {
-    console.log('Getting events with filters:', filters);
     const token = getAuthToken();
     
     if (useMockApi()) {

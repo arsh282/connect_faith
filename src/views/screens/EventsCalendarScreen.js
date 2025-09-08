@@ -194,7 +194,7 @@ export default function EventsCalendarScreen({ navigation }) {
       activeOpacity={0.8}
     >
       <View style={styles.eventTimeContainer}>
-        <Text style={styles.eventTime}>{event.time}</Text>
+        <Text style={styles.eventTimeBadge}>{event.time}</Text>
       </View>
       <View style={styles.eventContent}>
         <Text style={styles.eventTitle}>{event.title}</Text>
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: 15,
   },
-  eventTime: {
+  eventTimeBadge: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',

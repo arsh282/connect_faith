@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
+    Alert,
     Dimensions,
+    Linking,
+    Modal,
     Platform,
     ScrollView,
     StatusBar,
@@ -18,12 +21,51 @@ const { width, height } = Dimensions.get('window');
 export default function PrayerWallScreen({ navigation }) {
   const [prayerText, setPrayerText] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [prayerTapCounts, setPrayerTapCounts] = useState({
-    1: 0,
-    2: 0,
-    3: 0
-  }); // Track tap counts for each prayer
-  const lastTapTime = useRef({}); // Track last tap time for double-tap detection
+  const [showHelpModal, setShowHelpModal] = useState(false);
+
+  // Church member contact data
+  const churchMembers = [
+    {
+      id: 1,
+      name: "Pastor John Smith",
+      role: "Senior Pastor",
+      phone: "+1 (555) 123-4567",
+      email: "pastor.john@connectfaith.com",
+      available: "24/7 Emergency"
+    },
+    {
+      id: 2,
+      name: "Sarah Johnson",
+      role: "Associate Pastor",
+      phone: "+1 (555) 234-5678",
+      email: "sarah.johnson@connectfaith.com",
+      available: "Mon-Fri 9AM-5PM"
+    },
+    {
+      id: 3,
+      name: "Michael Chen",
+      role: "Church Elder",
+      phone: "+1 (555) 345-6789",
+      email: "michael.chen@connectfaith.com",
+      available: "Evenings & Weekends"
+    },
+    {
+      id: 4,
+      name: "Lisa Rodriguez",
+      role: "Prayer Ministry Leader",
+      phone: "+1 (555) 456-7890",
+      email: "lisa.rodriguez@connectfaith.com",
+      available: "Mon-Sat 8AM-8PM"
+    },
+    {
+      id: 5,
+      name: "David Thompson",
+      role: "Church Counselor",
+      phone: "+1 (555) 567-8901",
+      email: "david.thompson@connectfaith.com",
+      available: "By Appointment"
+    }
+  ];
   const [prayers, setPrayers] = useState([
     {
       id: 1,
@@ -70,117 +112,88 @@ export default function PrayerWallScreen({ navigation }) {
     };
 
     setPrayers([newPrayer, ...prayers]);
-    
-    // Initialize tap count for new prayer
-    setPrayerTapCounts(prev => ({
-      ...prev,
-      [newPrayer.id]: 0
-    }));
-    
     setPrayerText('');
     setIsAnonymous(false);
   };
 
   const handlePrayFor = (prayerId) => {
-    const now = Date.now();
-    const lastTap = lastTapTime.current[prayerId] || 0;
-    
-    // Check for double tap (within 300ms)
-    if (now - lastTap < 300) {
-      handleDoubleTap(prayerId);
-      return;
-    }
-    
-    // Update last tap time
-    lastTapTime.current[prayerId] = now;
-    
-    const currentTapCount = prayerTapCounts[prayerId] || 0;
-    const newTapCount = currentTapCount + 1;
-    
-    // Update tap count
-    setPrayerTapCounts(prev => ({
-      ...prev,
-      [prayerId]: newTapCount
-    }));
-    
-    // If 4 taps reached, add prayer count and mark as prayed
-    if (newTapCount >= 4) {
-      setPrayers(prayers.map(prayer => 
-        prayer.id === prayerId 
-          ? { ...prayer, prayerCount: prayer.prayerCount + 1, hasPrayed: true }
-          : prayer
-      ));
-      
-      // Reset tap count after 4 taps
-      setPrayerTapCounts(prev => ({
-        ...prev,
-        [prayerId]: 0
-      }));
-    }
-    
-    // Reset tap count after 3 seconds if not completed
-    if (newTapCount < 4) {
-      setTimeout(() => {
-        setPrayerTapCounts(prev => {
-          if (prev[prayerId] === newTapCount) {
-            return {
-              ...prev,
-              [prayerId]: 0
-            };
+    // Simply toggle the prayer count and mark as prayed
+    setPrayers(prayers.map(prayer => 
+      prayer.id === prayerId 
+        ? { 
+            ...prayer, 
+            prayerCount: prayer.hasPrayed ? prayer.prayerCount - 1 : prayer.prayerCount + 1,
+            hasPrayed: !prayer.hasPrayed 
           }
-          return prev;
-        });
-      }, 3000);
-    }
+        : prayer
+    ));
   };
 
   const handleDoubleTap = (prayerId) => {
-    // Remove prayer on double tap
+    // Remove prayer
     setPrayers(prayers.filter(prayer => prayer.id !== prayerId));
+  };
+
+  const handleCallMember = (phoneNumber, memberName) => {
+    const phoneUrl = `tel:${phoneNumber}`;
+    Linking.canOpenURL(phoneUrl)
+      .then(supported => {
+        if (supported) {
+          Linking.openURL(phoneUrl);
+        } else {
+          Alert.alert('Error', 'Unable to make phone calls on this device');
+        }
+      })
+      .catch(err => {
+        Alert.alert('Error', 'Unable to make phone calls');
+        console.error('Error opening phone app:', err);
+      });
+  };
+
+  const handleTextMember = (phoneNumber, memberName) => {
+    const message = `Hello ${memberName}, I need urgent help or support. Please call me back when you're available. Thank you.`;
+    const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
     
-    // Clean up tap count
-    setPrayerTapCounts(prev => {
-      const newCounts = { ...prev };
-      delete newCounts[prayerId];
-      return newCounts;
-    });
+    Linking.canOpenURL(smsUrl)
+      .then(supported => {
+        if (supported) {
+          Linking.openURL(smsUrl);
+        } else {
+          Alert.alert('Error', 'Unable to send text messages on this device');
+        }
+      })
+      .catch(err => {
+        Alert.alert('Error', 'Unable to send text message');
+        console.error('Error opening SMS app:', err);
+      });
+  };
+
+  const handleEmailMember = (email, memberName) => {
+    const subject = 'Urgent Help Request';
+    const body = `Hello ${memberName},\n\nI need urgent help or support. Please contact me as soon as possible.\n\nThank you.`;
+    const emailUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    Linking.canOpenURL(emailUrl)
+      .then(supported => {
+        if (supported) {
+          Linking.openURL(emailUrl);
+        } else {
+          Alert.alert('Error', 'Unable to send emails on this device');
+        }
+      })
+      .catch(err => {
+        Alert.alert('Error', 'Unable to send email');
+        console.error('Error opening email app:', err);
+      });
   };
 
   const renderPrayerItem = (prayer) => {
-    const currentTapCount = prayerTapCounts[prayer.id] || 0;
     const isCompleted = prayer.hasPrayed;
+    const isOwnPrayer = prayer.author === "You";
     
     return (
-      <TouchableOpacity 
-        key={prayer.id}
-        style={[
-          styles.prayerItem,
-          currentTapCount > 0 && !isCompleted && styles.prayerItemActive
-        ]}
-        onPress={() => handlePrayFor(prayer.id)}
-        activeOpacity={0.8}
-      >
+      <View key={prayer.id} style={styles.prayerItem}>
         <Text style={styles.prayerText}>{prayer.text}</Text>
-        
-        {/* Tap Progress Indicator */}
-        {currentTapCount > 0 && !isCompleted && (
-          <View style={styles.tapProgressContainer}>
-            <Text style={styles.tapProgressText}>
-              Tap {currentTapCount}/4 to pray
-            </Text>
-            <View style={styles.tapProgressBar}>
-              {[1, 2, 3, 4].map((step) => (
-                <View
-                  key={step}
-                  style={[
-                    styles.tapProgressDot,
-                    step <= currentTapCount && styles.tapProgressDotActive
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-        )}
         
         <View style={styles.prayerFooter}>
           <Text style={styles.prayerAuthor}>— {prayer.author}</Text>
@@ -208,9 +221,17 @@ export default function PrayerWallScreen({ navigation }) {
         </View>
         <Text style={styles.prayerTimestamp}>{prayer.timestamp}</Text>
         
-        {/* Double-tap hint */}
-        <Text style={styles.doubleTapHint}>Double-tap to remove</Text>
-      </TouchableOpacity>
+        {/* Show remove option only for own prayers */}
+        {isOwnPrayer && (
+          <TouchableOpacity 
+            style={styles.removeButton}
+            onPress={() => handleDoubleTap(prayer.id)}
+          >
+            <Ionicons name="trash-outline" size={16} color="#FF6B6B" />
+            <Text style={styles.removeButtonText}>Remove my prayer</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     );
   };
 
@@ -265,16 +286,90 @@ export default function PrayerWallScreen({ navigation }) {
           >
             <Text style={styles.submitButtonText}>Submit Prayer Request</Text>
           </TouchableOpacity>
+
+          {/* Need Help Button */}
+          <TouchableOpacity 
+            style={styles.helpButton}
+            onPress={() => setShowHelpModal(true)}
+          >
+            <Ionicons name="help-circle" size={24} color="#fff" />
+            <Text style={styles.helpButtonText}>Need Help or Urgent?</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Prayer List */}
         <View style={styles.prayersSection}>
-          <Text style={styles.sectionTitle}>Community Prayers</Text>
+          <Text style={styles.communityPrayersTitle}>Community Prayers</Text>
           <View style={styles.prayersList}>
             {prayers.map(renderPrayerItem)}
           </View>
         </View>
       </ScrollView>
+
+      {/* Help Modal */}
+      <Modal
+        visible={showHelpModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowHelpModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Church Support Team</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowHelpModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.modalSubtitle}>
+              Contact any of our church members for urgent help or support
+            </Text>
+
+            <ScrollView style={styles.membersList} showsVerticalScrollIndicator={false}>
+              {churchMembers.map((member) => (
+                <View key={member.id} style={styles.memberCard}>
+                  <View style={styles.memberInfo}>
+                    <Text style={styles.memberName}>{member.name}</Text>
+                    <Text style={styles.memberRole}>{member.role}</Text>
+                    <Text style={styles.memberPhone}>{member.phone}</Text>
+                    <Text style={styles.memberAvailable}>Available: {member.available}</Text>
+                  </View>
+                  
+                  <View style={styles.memberActions}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleCallMember(member.phone, member.name)}
+                    >
+                      <Ionicons name="call" size={20} color="#fff" />
+                      <Text style={styles.actionButtonText}>Call</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.actionButton, styles.textButton]}
+                      onPress={() => handleTextMember(member.phone, member.name)}
+                    >
+                      <Ionicons name="chatbubble" size={20} color="#fff" />
+                      <Text style={styles.actionButtonText}>Text</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.actionButton, styles.emailButton]}
+                      onPress={() => handleEmailMember(member.email, member.name)}
+                    >
+                      <Ionicons name="mail" size={20} color="#fff" />
+                      <Text style={styles.actionButtonText}>Email</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -378,6 +473,13 @@ const styles = StyleSheet.create({
   prayersSection: {
     marginBottom: 30,
   },
+  communityPrayersTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   prayersList: {
     gap: 20,
   },
@@ -390,12 +492,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
-  },
-  prayerItemActive: {
-    borderWidth: 2,
-    borderColor: '#6699CC',
-    shadowColor: '#6699CC',
-    shadowOpacity: 0.3,
   },
   prayerText: {
     fontSize: 18,
@@ -447,40 +543,150 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 10,
   },
-  tapProgressContainer: {
-    marginVertical: 15,
+  helpButton: {
+    backgroundColor: '#FF6B6B',
+    padding: 18,
+    borderRadius: 15,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 15,
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  helpButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  tapProgressText: {
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: width * 0.9,
+    maxHeight: height * 0.8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    lineHeight: 22,
+  },
+  membersList: {
+    maxHeight: height * 0.5,
+    paddingHorizontal: 20,
+  },
+  memberCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  memberInfo: {
+    marginBottom: 15,
+  },
+  memberName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 5,
+  },
+  memberRole: {
     fontSize: 14,
     color: '#6699CC',
     fontWeight: '600',
     marginBottom: 8,
   },
-  tapProgressBar: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
+  memberPhone: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+    marginBottom: 5,
   },
-  tapProgressDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#E0E0E0',
-    borderWidth: 1,
-    borderColor: '#CCCCCC',
-  },
-  tapProgressDotActive: {
-    backgroundColor: '#6699CC',
-    borderColor: '#6699CC',
-  },
-  doubleTapHint: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 8,
+  memberAvailable: {
+    fontSize: 14,
+    color: '#666',
     fontStyle: 'italic',
+  },
+  memberActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#6699CC',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  textButton: {
+    backgroundColor: '#28A745',
+  },
+  emailButton: {
+    backgroundColor: '#FFCC00',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    backgroundColor: '#FFF5F5',
+    borderWidth: 1,
+    borderColor: '#FFE0E0',
+    gap: 5,
+  },
+  removeButtonText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

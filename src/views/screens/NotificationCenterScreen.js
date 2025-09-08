@@ -1,63 +1,71 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../context/CustomAuthContext';
+import { useNotifications } from '../../context/NotificationsContext';
 
 export default function NotificationCenterScreen({ navigation }) {
-  const [notifications] = useState([
-    {
-      id: 1,
-      title: 'Youth Group Meeting Reminder',
-      description: 'Your Youth Group meeting starts in 15 minutes at the community hall. See you there!',
-      time: '2 min ago',
-      type: 'event',
-      unread: true,
-      icon: 'calendar-outline'
-    },
-    {
-      id: 2,
-      title: 'New Message from Sarah',
-      description: 'Sarah J. sent you a new message in the "Volunteer Team" group chat.',
-      time: '1 hour ago',
-      type: 'message',
-      unread: true,
-      icon: 'chatbubble-outline'
-    },
-    {
-      id: 3,
-      title: 'Important: Weekly Service Time Change',
-      description: 'Due to unforeseen circumstances, the weekly service time has been adjusted. Please check the Announcements section for details.',
-      time: '2 hours ago',
-      type: 'announcement',
-      unread: true,
-      icon: 'megaphone-outline'
-    },
-    {
-      id: 4,
-      title: 'Choir Practice Cancellation',
-      description: 'Choir practice for tonight, October 26th, has been cancelled. We will resume next week as scheduled.',
-      time: '5:00 PM',
-      type: 'event',
-      unread: false,
-      icon: 'calendar-outline'
-    },
-    {
-      id: 5,
-      title: 'App Update Available',
-      description: 'A new version of the Church Connect app is available with improved features and bug fixes.',
-      time: '2 days ago',
-      type: 'system',
-      unread: false,
-      icon: 'notifications-outline'
+  const { notifications, markAsRead, markAllAsRead } = useNotifications();
+  const { userProfile } = useAuth();
+  const [localNotifications, setLocalNotifications] = useState([]);
+
+  // Update local notifications when context notifications change
+  useEffect(() => {
+    if (notifications && notifications.length > 0) {
+      // Transform context notifications to match the expected format
+      const transformedNotifications = notifications.map(notification => ({
+        id: notification.id,
+        title: notification.title,
+        description: notification.message || notification.description,
+        time: formatTime(notification.timestamp),
+        type: notification.type || 'system',
+        unread: !notification.read,
+        icon: getIconForType(notification.type)
+      }));
+      setLocalNotifications(transformedNotifications);
+    } else {
+      setLocalNotifications([]);
     }
-  ]);
+  }, [notifications]);
+
+  // Format timestamp to relative time
+  const formatTime = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    
+    const now = new Date();
+    const notificationTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - notificationTime) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    
+    return notificationTime.toLocaleDateString();
+  };
+
+  // Get appropriate icon for notification type
+  const getIconForType = (type) => {
+    switch (type) {
+      case 'event': return 'calendar-outline';
+      case 'message': return 'chatbubble-outline';
+      case 'announcement': return 'megaphone-outline';
+      case 'system': return 'notifications-outline';
+      default: return 'notifications-outline';
+    }
+  };
 
   const getIconColor = (type) => {
     switch (type) {
@@ -98,8 +106,13 @@ export default function NotificationCenterScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const handleNotificationPress = (notification) => {
-    // Mark as read and navigate to appropriate screen
+  const handleNotificationPress = async (notification) => {
+    // Mark as read if it's unread
+    if (notification.unread) {
+      await markAsRead(notification.id);
+    }
+    
+    // Navigate to appropriate screen based on notification type
     if (notification.type === 'event') {
       navigation.navigate('Events');
     } else if (notification.type === 'message') {
@@ -109,14 +122,13 @@ export default function NotificationCenterScreen({ navigation }) {
     }
   };
 
-  const markAllAsRead = () => {
-    // In a real app, this would update the backend
-    console.log('Mark all as read');
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#6699CC" />
       
       {/* Header */}
       <View style={styles.header}>
@@ -124,19 +136,19 @@ export default function NotificationCenterScreen({ navigation }) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         <TouchableOpacity 
           style={styles.markAllButton}
-          onPress={markAllAsRead}
+          onPress={handleMarkAllAsRead}
         >
           <Text style={styles.markAllText}>Mark All Read</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {notifications.length === 0 ? (
+        {localNotifications.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={64} color="#ccc" />
             <Text style={styles.emptyStateTitle}>No Notifications</Text>
@@ -146,44 +158,51 @@ export default function NotificationCenterScreen({ navigation }) {
           </View>
         ) : (
           <View style={styles.notificationsList}>
-            {notifications.map(renderNotification)}
+            {localNotifications.map(renderNotification)}
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: 10,
     paddingBottom: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#6699CC',
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: '#6699CC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   backButton: {
-    padding: 5,
+    padding: 10,
+    marginLeft: -10,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: 'bold',
+    color: '#fff',
   },
   markAllButton: {
-    padding: 5,
+    padding: 10,
+    marginRight: -10,
   },
   markAllText: {
     fontSize: 14,
-    color: '#1e3c72',
+    color: '#fff',
     fontWeight: '500',
   },
   content: {
@@ -197,19 +216,19 @@ const styles = StyleSheet.create({
   notificationCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   notificationIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -225,7 +244,7 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#333',
     flex: 1,
     marginRight: 12,
@@ -242,7 +261,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFD700',
+    backgroundColor: '#FFCC00',
   },
   notificationDescription: {
     fontSize: 14,

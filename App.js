@@ -1,5 +1,6 @@
 import React from 'react';
 import { LogBox, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CustomAuthProvider } from './src/context/CustomAuthContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -45,13 +46,15 @@ class AppErrorBoundary extends React.Component {
 
 export default function App() {
   return (
-    <AppErrorBoundary>
-      <CustomAuthProvider>
-        <NotificationsProvider>
-          <AppNavigator />
-        </NotificationsProvider>
-      </CustomAuthProvider>
-    </AppErrorBoundary>
+    <SafeAreaProvider>
+      <AppErrorBoundary>
+        <CustomAuthProvider>
+          <NotificationsProvider>
+            <AppNavigator />
+          </NotificationsProvider>
+        </CustomAuthProvider>
+      </AppErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 

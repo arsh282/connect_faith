@@ -73,7 +73,6 @@ export const mockApiService = {
   // Mock user registration
   registerUser: async (userData) => {
     try {
-      console.log('🎭 Mock API: Registering user:', userData);
       
       // Simulate validation
       if (!userData.email || !userData.password) {
@@ -102,14 +101,11 @@ export const mockApiService = {
       mockUsers.push(newUser);
       
       // Log the DOB that is being included in the user record
-      console.log('🎭 Mock API: Registering user with DOB:', newUser.DOB);
-      console.log('🎭 Mock API: User created at:', newUser.createdAt);
       
       // Special check for birthday on signup day
       const today = new Date();
       const dob = new Date(newUser.DOB);
       if (today.getDate() === dob.getDate() && today.getMonth() === dob.getMonth()) {
-        console.log('🎭 Mock API: Today is user\'s birthday!');
       }
       
       const response = await mockApiService.simulateApiCall({
@@ -135,7 +131,6 @@ export const mockApiService = {
   // Mock user login
   loginUser: async (email, password) => {
     try {
-      console.log('🎭 Mock API: Logging in user:', email);
       
       // Simulate validation
       if (!email || !password) {
@@ -175,7 +170,6 @@ export const mockApiService = {
   // Mock get roles
   getRoles: async () => {
     try {
-      console.log('🎭 Mock API: Getting roles');
       
       const response = await mockApiService.simulateApiCall(mockRoles);
       return { success: true, data: response };
@@ -188,7 +182,6 @@ export const mockApiService = {
   // Mock get user profile
   getUserProfile: async (userId, token) => {
     try {
-      console.log('🎭 Mock API: Getting user profile:', userId);
       
       const user = mockUsers.find(u => u.id === userId);
       if (!user) {
@@ -224,7 +217,6 @@ export const mockApiService = {
   // Mock update user profile
   updateUserProfile: async (userId, updates, token) => {
     try {
-      console.log('🎭 Mock API: Updating user profile:', userId, updates);
       
       const userIndex = mockUsers.findIndex(u => u.id === userId);
       if (userIndex === -1) {
@@ -250,7 +242,6 @@ export const mockApiService = {
   // Mock forgot password
   forgotPassword: async (email) => {
     try {
-      console.log('🎭 Mock API: Forgot password for:', email);
       
       const user = mockUsers.find(u => u.email === email);
       if (!user) {
@@ -271,7 +262,6 @@ export const mockApiService = {
   // Mock reset password
   resetPassword: async (token, newPassword) => {
     try {
-      console.log('🎭 Mock API: Resetting password');
       
       const response = await mockApiService.simulateApiCall({
         message: 'Password reset successfully'
@@ -287,7 +277,6 @@ export const mockApiService = {
   // Mock event categories
   getEventCategories: async (token) => {
     try {
-      console.log('🎭 Mock API: Getting event categories');
       
       const categories = [
         { id: '1', name: 'Worship Service' },
@@ -309,7 +298,6 @@ export const mockApiService = {
   // Mock create event
   createEvent: async (eventData, token) => {
     try {
-      console.log('🎭 Mock API: Creating event:', eventData);
       
       // Simulate validation
       if (!eventData.name) {
@@ -345,7 +333,6 @@ export const mockApiService = {
       
       // Save back to storage
       await AsyncStorage.setItem('mockEvents', JSON.stringify(storedEvents));
-      console.log('🎭 Mock API: Saved event to storage, total events:', storedEvents.length);
       
       // Directly save to broadcast storage for immediate notification
       try {
@@ -368,7 +355,6 @@ export const mockApiService = {
         }
         
         await AsyncStorage.setItem(broadcastKey, JSON.stringify(broadcastEvents));
-        console.log('🎭 Mock API: Added event to broadcasts directly from API');
       } catch (err) {
         console.error('Error saving to broadcast storage:', err);
       }
@@ -388,7 +374,6 @@ export const mockApiService = {
   // Mock update event
   updateEvent: async (eventId, eventData, token) => {
     try {
-      console.log('🎭 Mock API: Updating event:', eventId, eventData);
       
       // Get events from storage
       let storedEvents = [];
@@ -410,7 +395,6 @@ export const mockApiService = {
         
         // Save back to storage
         await AsyncStorage.setItem('mockEvents', JSON.stringify(updatedEvents));
-        console.log('🎭 Mock API: Event updated in storage');
       } catch (err) {
         console.error('Error updating event in storage:', err);
       }
@@ -436,7 +420,6 @@ export const mockApiService = {
   // Mock delete event
   deleteEvent: async (eventId, token) => {
     try {
-      console.log('🎭 Mock API: Deleting event:', eventId);
       
       // Get events from storage
       let storedEvents = [];
@@ -449,7 +432,6 @@ export const mockApiService = {
         
         // Save back to storage
         await AsyncStorage.setItem('mockEvents', JSON.stringify(storedEvents));
-        console.log('🎭 Mock API: Event deleted from storage, remaining:', storedEvents.length);
       } catch (err) {
         console.error('Error deleting event from storage:', err);
       }
@@ -468,7 +450,6 @@ export const mockApiService = {
   // Mock get events
   getEvents: async (token, filters = {}) => {
     try {
-      console.log('🎭 Mock API: Getting events with filters:', filters);
       
       // Get events from storage or use defaults if not found
       let mockEvents = [];
@@ -476,12 +457,10 @@ export const mockApiService = {
         const eventsJson = await AsyncStorage.getItem('mockEvents');
         if (eventsJson) {
           mockEvents = JSON.parse(eventsJson);
-          console.log('🎭 Mock API: Retrieved events from storage, count:', mockEvents.length);
         } else {
           // First time setup - save default events to storage
           mockEvents = [...defaultMockEvents];
           await AsyncStorage.setItem('mockEvents', JSON.stringify(mockEvents));
-          console.log('🎭 Mock API: Initialized storage with default events');
         }
       } catch (err) {
         console.error('Error loading events from storage:', err);
@@ -525,7 +504,6 @@ export const mockApiService = {
   // Mock get event details
   getEventDetails: async (eventId, token) => {
     try {
-      console.log('🎭 Mock API: Getting event details:', eventId);
       
       // Try to find the event in storage
       let mockEvent = null;
@@ -534,7 +512,6 @@ export const mockApiService = {
         if (eventsJson) {
           const storedEvents = JSON.parse(eventsJson);
           mockEvent = storedEvents.find(event => event.id === eventId);
-          console.log('🎭 Mock API: Found event in storage:', !!mockEvent);
         }
       } catch (err) {
         console.error('Error finding event in storage:', err);
