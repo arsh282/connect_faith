@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/CustomAuthContext';
 import { useNotifications } from '../../context/NotificationsContext';
 
@@ -127,7 +126,7 @@ export default function NotificationCenterScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#6699CC" />
       
       {/* Header */}
@@ -162,7 +161,7 @@ export default function NotificationCenterScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -176,7 +175,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 50,
     paddingBottom: 20,
     backgroundColor: '#6699CC',
     borderBottomWidth: 1,
@@ -208,10 +207,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 0,
   },
   notificationsList: {
     gap: 12,
+    paddingTop: 15,
   },
   notificationCard: {
     flexDirection: 'row',

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNotifications } from '../context/NotificationsContext';
 
-const NotificationBell = ({ style, onLogout }) => {
+const NotificationBell = ({ style }) => {
   const { notifications, unreadCount } = useNotifications();
   const navigation = useNavigation();
   
@@ -28,46 +28,26 @@ const NotificationBell = ({ style, onLogout }) => {
     }
   };
 
-  const handleLogoutPress = () => {
-    if (onLogout) {
-      onLogout();
-    }
-  };
-
   return (
     <View style={style}>
-      <View style={styles.bellContainer}>
-        <TouchableOpacity onPress={handleBellPress} style={styles.iconButton}>
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.logoutButton} 
-          onPress={handleLogoutPress}
-        >
-          <Ionicons name="log-out-outline" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity onPress={handleBellPress} style={styles.iconButton}>
+        <Ionicons name="notifications-outline" size={24} color="#fff" />
+        {unreadCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  bellContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   iconButton: {
     position: 'relative',
     padding: 8,
-    marginRight: 10,
   },
   badge: {
     position: 'absolute',
@@ -88,9 +68,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
-  logoutButton: {
-    padding: 8,
-  }
 });
 
 export default NotificationBell;

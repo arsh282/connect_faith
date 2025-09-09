@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/CustomAuthContext';
 
 // Role descriptions for users
@@ -15,7 +15,7 @@ export const ROLE_DESCRIPTIONS = {
       'Watch sermons and access resources',
       'Make donations to support the ministry'
     ],
-    color: '#6699CC'
+    color: '#1e3c72'
   },
   member: {
     title: 'Member',
@@ -27,7 +27,7 @@ export const ROLE_DESCRIPTIONS = {
       'Watch sermons and access resources',
       'Make donations to support the ministry'
     ],
-    color: '#6699CC'
+    color: '#1e3c72'
   },
   admin: {
     title: 'Administrator',
@@ -65,7 +65,7 @@ export const RoleIndicator = ({ role = 'user' }) => {
     >
       <Ionicons 
         name={role === 'admin' ? 'shield-checkmark' : 'person'} 
-        size={12} 
+        size={14} 
         color="#fff" 
       />
       <Text style={styles.roleText}>{roleInfo.title}</Text>
@@ -189,14 +189,14 @@ const styles = StyleSheet.create({
   roleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     marginTop: 4,
   },
   roleText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
     marginLeft: 4,
   },

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import {
+    Linking,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import BirthdayWish from '../../components/BirthdayWish';
 import NotificationBell from '../../components/NotificationBell';
-import { RoleIndicator, useRolePermissions } from '../../components/RoleBasedAccess';
+import { useRolePermissions } from '../../components/RoleBasedAccess';
 import { useAuth } from '../../context/CustomAuthContext';
 import { resetNotificationState } from '../../services/eventBroadcastService';
 import { useEventNotifications } from '../../services/eventNotificationService';
@@ -127,6 +128,22 @@ const HomeScreen = ({ navigation }) => {
 
   const navigateToScreen = (screenName) => {
     navigation.navigate(screenName);
+  };
+
+  // Social media redirect functions
+  const openFacebook = () => {
+    const facebookUrl = 'https://www.facebook.com/yourchurchpage'; // Replace with actual Facebook page
+    Linking.openURL(facebookUrl).catch(err => console.error('Failed to open Facebook:', err));
+  };
+
+  const openInstagram = () => {
+    const instagramUrl = 'https://www.instagram.com/yourchurchpage'; // Replace with actual Instagram page
+    Linking.openURL(instagramUrl).catch(err => console.error('Failed to open Instagram:', err));
+  };
+
+  const openYouTube = () => {
+    const youtubeUrl = 'https://www.youtube.com/yourchurchchannel'; // Replace with actual YouTube channel
+    Linking.openURL(youtubeUrl).catch(err => console.error('Failed to open YouTube:', err));
   };
 
   // Member features
@@ -245,33 +262,44 @@ const HomeScreen = ({ navigation }) => {
               <Ionicons name="person" size={24} color="#fff" />
             </View>
             <View style={styles.userDetails}>
-              <Text style={styles.welcomeText}>Welcome back!</Text>
-              <Text style={styles.userName}>{userProfile?.fullName || 'User'}</Text>
-              <View style={styles.roleContainer}>
-                <RoleIndicator role={userProfile?.role} />
-              </View>
+              <Text style={[styles.welcomeText, { fontWeight: 'bold' }]}>Welcome back, {userProfile?.fullName || 'User'}!</Text>
             </View>
           </View>
-          {userProfile?.role === 'Admin' ? (
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={24} color="#fff" />
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.headerButtons}>
-              <TouchableOpacity 
-                style={styles.resetButton} 
-                onPress={handleResetNotifications}
-              >
-                <Ionicons name="refresh" size={18} color="#fff" />
-              </TouchableOpacity>
-              <NotificationBell onLogout={handleLogout} />
-            </View>
-          )}
+          <NotificationBell />
         </View>
       </LinearGradient>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Connect Us Section */}
+        <View style={styles.section}>
+          <View style={styles.connectUsContainer}>
+            <Text style={styles.sectionTitle}>Connect With Us</Text>
+            <View style={styles.socialMediaContainer}>
+            <TouchableOpacity style={styles.socialButton} onPress={openFacebook}>
+              <View style={[styles.socialIconContainer, { backgroundColor: '#3B5998' }]}>
+                <Ionicons name="logo-facebook" size={24} color="#fff" />
+              </View>
+              <Text style={styles.socialButtonText}>Facebook</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.socialButton} onPress={openInstagram}>
+              <View style={[styles.socialIconContainer, { backgroundColor: '#E4405F' }]}>
+                <Ionicons name="logo-instagram" size={24} color="#fff" />
+              </View>
+              <Text style={styles.socialButtonText}>Instagram</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.socialButton} onPress={openYouTube}>
+              <View style={[styles.socialIconContainer, { backgroundColor: '#FF0000' }]}>
+                <Ionicons name="logo-youtube" size={24} color="#fff" />
+              </View>
+              <Text style={styles.socialButtonText}>YouTube</Text>
+            </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
         {/* Welcome Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>What would you like to do today?</Text>
@@ -344,7 +372,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#6699CC',
+    backgroundColor: '#8E44AD',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -366,29 +394,13 @@ const styles = StyleSheet.create({
   roleContainer: {
     marginTop: 4,
   },
-  logoutButton: {
-    padding: 8,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  resetButton: {
-    marginRight: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
   section: {
     paddingTop: 20,
-    paddingBottom: 30,
+    paddingBottom: 5,
   },
   sectionTitle: {
     fontSize: 20,
@@ -446,6 +458,54 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 16,
+  },
+  socialMediaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  socialButton: {
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  socialIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  socialButtonText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  connectUsContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });
 
