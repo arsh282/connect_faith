@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 
 import AnnouncementsScreen from '../views/screens/AnnouncementsScreen';
 import ChatScreen from '../views/screens/ChatScreen';
+import ContactListScreen from '../views/screens/ContactListScreen';
 import DonationsScreen from '../views/screens/DonationsScreen';
 import EventDetailsScreen from '../views/screens/EventDetailsScreen';
 import EventsCalendarScreen from '../views/screens/EventsCalendarScreen';
@@ -14,6 +15,8 @@ import NotificationScreen from '../views/screens/NotificationScreen';
 import PrayerWallScreen from '../views/screens/PrayerWallScreen';
 import ProfileSettingsScreen from '../views/screens/ProfileSettingsScreen';
 import SermonArchiveScreen from '../views/screens/SermonArchiveScreen';
+import SermonDetailsScreen from '../views/screens/SermonDetailsScreen';
+import ServicesScreen from '../views/screens/ServicesScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -33,9 +36,25 @@ function HomeStack() {
       <Stack.Screen name="Donations" component={DonationsScreen} />
       <Stack.Screen name="Events" component={EventsCalendarScreen} />
       <Stack.Screen name="Sermons" component={SermonArchiveScreen} />
+      <Stack.Screen name="SermonDetails" component={SermonDetailsScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="PrayerWall" component={PrayerWallScreen} />
       <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Profile Stack for screens accessible from Profile tab
+function ProfileStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="ProfileMain" component={ProfileSettingsScreen} />
+      <Stack.Screen name="ContactList" component={ContactListScreen} />
+      <Stack.Screen name="Services" component={ServicesScreen} />
     </Stack.Navigator>
   );
 }
@@ -123,7 +142,7 @@ export default function UserTabs() {
       />
       <Tab.Screen 
         name="Profile" 
-        component={ProfileSettingsScreen}
+        component={ProfileStack}
         options={{
           title: 'Profile',
         }}

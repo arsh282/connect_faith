@@ -156,7 +156,7 @@ const HomeScreen = ({ navigation }) => {
       title: 'Sermons',
       icon: 'play-circle-outline',
       color: '#6699CC',
-      screen: 'SermonArchive',
+      screen: 'Sermons',
       description: 'Watch and listen to sermons'
     },
     {
@@ -181,7 +181,7 @@ const HomeScreen = ({ navigation }) => {
       title: 'Create Event',
       icon: 'add-circle-outline',
       color: '#FFCC00',
-      screen: 'CreateEditEvent',
+      screen: 'CreateEvent',
       description: 'Add new church events',
       requiresAdmin: true
     },
@@ -189,7 +189,7 @@ const HomeScreen = ({ navigation }) => {
       title: 'Create Announcement',
       icon: 'megaphone-outline',
       color: '#FFCC00',
-      screen: 'CreateEditAnnouncement',
+      screen: 'CreateAnnouncement',
       description: 'Post church announcements',
       requiresAdmin: true
     },
@@ -197,7 +197,7 @@ const HomeScreen = ({ navigation }) => {
       title: 'Upload Sermon',
       icon: 'cloud-upload-outline',
       color: '#FFCC00',
-      screen: 'UploadEditSermon',
+      screen: 'UploadSermon',
       description: 'Add new sermon content',
       requiresAdmin: true
     },
@@ -213,7 +213,7 @@ const HomeScreen = ({ navigation }) => {
       title: 'Reports',
       icon: 'analytics-outline',
       color: '#FFCC00',
-      screen: 'Reports',
+      screen: 'DonationReports',
       description: 'View church analytics',
       requiresAdmin: true
     },

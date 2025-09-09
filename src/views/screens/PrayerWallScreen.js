@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
@@ -15,6 +16,8 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useAuth } from '../../context/CustomAuthContext';
+import { useNotifications } from '../../context/NotificationsContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,6 +25,9 @@ export default function PrayerWallScreen({ navigation }) {
   const [prayerText, setPrayerText] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
+  const { addNotification } = useNotifications();
 
   // Church member contact data
   const churchMembers = [
@@ -66,7 +72,8 @@ export default function PrayerWallScreen({ navigation }) {
       available: "By Appointment"
     }
   ];
-  const [prayers, setPrayers] = useState([
+  // Default community prayers
+  const defaultPrayers = [
     {
       id: 1,
       text: "Praying for healing and strength for my friend going through a tough time with their health. May they feel comforted and recover quickly.",
@@ -74,7 +81,8 @@ export default function PrayerWallScreen({ navigation }) {
       isAnonymous: false,
       prayerCount: 15,
       hasPrayed: false,
-      timestamp: "2 hours ago"
+      timestamp: "2 hours ago",
+      isDefault: true
     },
     {
       id: 2,
@@ -83,7 +91,8 @@ export default function PrayerWallScreen({ navigation }) {
       isAnonymous: true,
       prayerCount: 8,
       hasPrayed: true,
-      timestamp: "1 day ago"
+      timestamp: "1 day ago",
+      isDefault: true
     },
     {
       id: 3,
@@ -92,33 +101,149 @@ export default function PrayerWallScreen({ navigation }) {
       isAnonymous: false,
       prayerCount: 23,
       hasPrayed: false,
-      timestamp: "3 days ago"
+      timestamp: "3 days ago",
+      isDefault: true
     }
-  ]);
+  ];
 
-  const handleSubmitPrayer = () => {
+  const [prayers, setPrayers] = useState(defaultPrayers);
+
+  // Load prayers from storage when component mounts
+  useEffect(() => {
+    loadPrayers();
+  }, []);
+
+  // Load prayers from AsyncStorage
+  const loadPrayers = async () => {
+    try {
+      const storedPrayers = await AsyncStorage.getItem('community_prayers');
+      if (storedPrayers) {
+        const parsedPrayers = JSON.parse(storedPrayers);
+        // Merge stored prayers with default prayers, avoiding duplicates
+        const mergedPrayers = [...defaultPrayers];
+        
+        // Add stored prayers that aren't already in default prayers
+        parsedPrayers.forEach(storedPrayer => {
+          if (!mergedPrayers.find(p => p.id === storedPrayer.id)) {
+            mergedPrayers.push(storedPrayer);
+          }
+        });
+        
+        // Sort by timestamp (newest first)
+        mergedPrayers.sort((a, b) => {
+          const aTime = new Date(a.createdAt || a.timestamp || 0);
+          const bTime = new Date(b.createdAt || b.timestamp || 0);
+          return bTime - aTime;
+        });
+        
+        setPrayers(mergedPrayers);
+        console.log('📿 Loaded prayers from storage:', mergedPrayers.length);
+      } else {
+        console.log('📿 No stored prayers found, using defaults');
+      }
+    } catch (error) {
+      console.error('❌ Error loading prayers:', error);
+    }
+  };
+
+  // Save prayers to AsyncStorage
+  const savePrayers = async (prayersToSave) => {
+    try {
+      // Only save user-submitted prayers (not default ones)
+      const userPrayers = prayersToSave.filter(prayer => !prayer.isDefault);
+      await AsyncStorage.setItem('community_prayers', JSON.stringify(userPrayers));
+      console.log('📿 Saved prayers to storage:', userPrayers.length);
+    } catch (error) {
+      console.error('❌ Error saving prayers:', error);
+    }
+  };
+
+  // Format timestamp to relative time
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    
+    const now = new Date();
+    const prayerTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - prayerTime) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    
+    return prayerTime.toLocaleDateString();
+  };
+
+  const handleSubmitPrayer = async () => {
     if (!prayerText.trim()) {
+      Alert.alert('Empty Prayer', 'Please enter your prayer request before submitting.');
       return;
     }
 
-    const newPrayer = {
-      id: Date.now(),
-      text: prayerText,
-      author: isAnonymous ? "Anonymous" : "You",
-      isAnonymous: isAnonymous,
-      prayerCount: 0,
-      hasPrayed: false,
-      timestamp: "Just now"
-    };
+    if (!user) {
+      Alert.alert('Authentication Required', 'Please log in to submit a prayer request.');
+      return;
+    }
 
-    setPrayers([newPrayer, ...prayers]);
-    setPrayerText('');
-    setIsAnonymous(false);
+    setSubmitting(true);
+
+    try {
+      // For now, we'll use the local implementation but add notification functionality
+      // In a real app, this would call the backend API
+      const now = new Date();
+      const newPrayer = {
+        id: Date.now(),
+        text: prayerText,
+        author: isAnonymous ? "Anonymous" : "You",
+        isAnonymous: isAnonymous,
+        prayerCount: 0,
+        hasPrayed: false,
+        timestamp: "Just now",
+        isDefault: false,
+        userId: user?.uid || 'anonymous',
+        createdAt: now.toISOString()
+      };
+
+      const updatedPrayers = [newPrayer, ...prayers];
+      setPrayers(updatedPrayers);
+      
+      // Save to storage
+      await savePrayers(updatedPrayers);
+      
+      // Add notification for successful prayer submission
+      await addNotification({
+        type: 'prayer_submission',
+        title: 'Prayer Request Submitted',
+        message: 'Your prayer request has been submitted successfully! Our church community will be praying for you.',
+        prayerId: newPrayer.id
+      });
+
+      // Show success alert with emergency contact information
+      Alert.alert(
+        'Prayer Request Submitted! 🙏',
+        'Your prayer request has been submitted successfully. Our church community will be praying for you.\n\nFor urgent matters, please contact:\n\nPastor John Smith: (555) 123-4567\nLisa Rodriguez (Prayer Leader): (555) 456-7890\nDavid Thompson (Counselor): (555) 567-8901',
+        [
+          { text: 'OK', style: 'default' }
+        ]
+      );
+
+      setPrayerText('');
+      setIsAnonymous(false);
+    } catch (error) {
+      console.error('Error submitting prayer:', error);
+      Alert.alert('Error', 'Failed to submit prayer request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handlePrayFor = (prayerId) => {
+  const handlePrayFor = async (prayerId) => {
     // Simply toggle the prayer count and mark as prayed
-    setPrayers(prayers.map(prayer => 
+    const updatedPrayers = prayers.map(prayer => 
       prayer.id === prayerId 
         ? { 
             ...prayer, 
@@ -126,12 +251,21 @@ export default function PrayerWallScreen({ navigation }) {
             hasPrayed: !prayer.hasPrayed 
           }
         : prayer
-    ));
+    );
+    
+    setPrayers(updatedPrayers);
+    
+    // Save changes to storage
+    await savePrayers(updatedPrayers);
   };
 
-  const handleDoubleTap = (prayerId) => {
+  const handleDoubleTap = async (prayerId) => {
     // Remove prayer
-    setPrayers(prayers.filter(prayer => prayer.id !== prayerId));
+    const updatedPrayers = prayers.filter(prayer => prayer.id !== prayerId);
+    setPrayers(updatedPrayers);
+    
+    // Save changes to storage
+    await savePrayers(updatedPrayers);
   };
 
   const handleCallMember = (phoneNumber, memberName) => {
@@ -219,7 +353,9 @@ export default function PrayerWallScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
-        <Text style={styles.prayerTimestamp}>{prayer.timestamp}</Text>
+        <Text style={styles.prayerTimestamp}>
+          {prayer.createdAt ? formatTimestamp(prayer.createdAt) : prayer.timestamp}
+        </Text>
         
         {/* Show remove option only for own prayers */}
         {isOwnPrayer && (
@@ -280,11 +416,21 @@ export default function PrayerWallScreen({ navigation }) {
           </View>
 
           <TouchableOpacity 
-            style={styles.submitButton}
+            style={[
+              styles.submitButton,
+              (!prayerText.trim() || submitting) && styles.submitButtonDisabled
+            ]}
             onPress={handleSubmitPrayer}
-            disabled={!prayerText.trim()}
+            disabled={!prayerText.trim() || submitting}
           >
-            <Text style={styles.submitButtonText}>Submit Prayer Request</Text>
+            {submitting ? (
+              <View style={styles.loadingContainer}>
+                <Ionicons name="hourglass-outline" size={20} color="#fff" />
+                <Text style={styles.submitButtonText}>Submitting...</Text>
+              </View>
+            ) : (
+              <Text style={styles.submitButtonText}>Submit Prayer Request</Text>
+            )}
           </TouchableOpacity>
 
           {/* Need Help Button */}
@@ -465,10 +611,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  submitButtonDisabled: {
+    backgroundColor: 'rgba(255, 204, 0, 0.5)',
+    shadowOpacity: 0.1,
+  },
   submitButtonText: {
     color: '#333',
     fontSize: 20,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   prayersSection: {
     marginBottom: 30,

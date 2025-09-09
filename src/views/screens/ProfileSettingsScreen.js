@@ -103,6 +103,43 @@ export default function ProfileSettingsScreen({ navigation }) {
           </View>
         </View>
 
+        {/* Quick Access Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Access</Text>
+          
+          <TouchableOpacity 
+            style={styles.optionItem} 
+            onPress={() => navigation.navigate('ContactList')}
+          >
+            <View style={styles.optionLeft}>
+              <View style={[styles.optionIcon, { backgroundColor: '#4CAF50' + '20' }]}>
+                <Ionicons name="people-outline" size={24} color="#4CAF50" />
+              </View>
+              <View style={styles.optionTextContainer}>
+                <Text style={styles.optionText}>Church Contacts</Text>
+                <Text style={styles.optionSubtext}>View church staff and contact information</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.optionItem} 
+            onPress={() => navigation.navigate('Services')}
+          >
+            <View style={styles.optionLeft}>
+              <View style={[styles.optionIcon, { backgroundColor: '#6699CC' + '20' }]}>
+                <Ionicons name="apps-outline" size={24} color="#6699CC" />
+              </View>
+              <View style={styles.optionTextContainer}>
+                <Text style={styles.optionText}>App Services</Text>
+                <Text style={styles.optionSubtext}>Discover all app features and services</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+        </View>
+
         {/* Profile Options */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Settings</Text>

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import {
-  Alert,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
  
 
@@ -18,6 +18,8 @@ export default function UploadEditSermonScreen({ navigation }) {
   const [tags, setTags] = useState('');
   const [description, setDescription] = useState('');
   const [source, setSource] = useState('audio');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [duration, setDuration] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -67,7 +69,26 @@ export default function UploadEditSermonScreen({ navigation }) {
           </View>
 
           <Text style={[styles.label, { marginTop: 12 }]}>{source === 'audio' ? 'Upload Audio File' : 'YouTube URL'}</Text>
-          <TextInput style={styles.input} placeholder={source === 'audio' ? 'Pick a file (mock)' : 'https://youtu.be/...'} placeholderTextColor="#99A0A5" />
+          <TextInput 
+            style={styles.input} 
+            placeholder={source === 'audio' ? 'Pick a file (mock)' : 'https://youtu.be/...'} 
+            placeholderTextColor="#99A0A5"
+            value={source === 'youtube' ? youtubeUrl : ''}
+            onChangeText={source === 'youtube' ? setYoutubeUrl : null}
+          />
+          
+          {source === 'youtube' && (
+            <>
+              <Text style={styles.label}>Duration (e.g., 45:30)</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="45:30" 
+                placeholderTextColor="#99A0A5"
+                value={duration}
+                onChangeText={setDuration}
+              />
+            </>
+          )}
         </View>
 
         <TouchableOpacity style={[styles.primaryButton, saving && { opacity: 0.7 }]} onPress={handleSave} disabled={saving}>

@@ -58,9 +58,52 @@ router.post('/', [
     const prayerRef = await db.collection('prayers').add(prayer);
     const prayerDoc = await prayerRef.get();
 
+    // Emergency contact information for prayer requests
+    const emergencyContacts = {
+      pastor: {
+        name: "Pastor John Smith",
+        phone: "+1 (555) 123-4567",
+        available: "24/7 for emergencies"
+      },
+      prayerLeader: {
+        name: "Lisa Rodriguez",
+        phone: "+1 (555) 456-7890",
+        available: "Mon-Sat 8AM-8PM"
+      },
+      counselor: {
+        name: "David Thompson",
+        phone: "+1 (555) 567-8901",
+        available: "By Appointment"
+      }
+    };
+
+    // Create notification for prayer submission confirmation
+    const notification = {
+      type: 'prayer_submission',
+      title: 'Prayer Request Submitted',
+      message: `Your prayer request "${title}" has been submitted successfully. Our church community will be praying for you.`,
+      prayerId: prayerDoc.id,
+      userId: req.user.id,
+      createdAt: new Date(),
+      read: false
+    };
+
+    // Save notification to user's notifications
+    try {
+      await db.collection('notifications').add(notification);
+      console.log('Prayer submission notification created for user:', req.user.id);
+    } catch (notificationError) {
+      console.error('Failed to create prayer notification:', notificationError);
+      // Don't fail the prayer submission if notification fails
+    }
+
     res.json({
       id: prayerDoc.id,
-      ...prayerDoc.data()
+      ...prayerDoc.data(),
+      notification: {
+        message: 'Your prayer request has been submitted successfully!',
+        emergencyContacts: emergencyContacts
+      }
     });
   } catch (error) {
     console.error('Create prayer error:', error);
