@@ -128,7 +128,7 @@ export default function NotificationCenterScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#6699CC" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 

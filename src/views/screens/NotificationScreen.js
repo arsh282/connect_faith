@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  FlatList,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNotifications } from '../../context/NotificationsContext';
 
 const NotificationScreen = ({ navigation }) => {
@@ -109,7 +109,8 @@ const NotificationScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container} >
+      <StatusBar barStyle="light-content" backgroundColor="#6699CC" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -142,7 +143,7 @@ const NotificationScreen = ({ navigation }) => {
           contentContainerStyle={styles.listContent}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 

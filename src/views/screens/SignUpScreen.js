@@ -223,9 +223,10 @@ const SignUpScreen = ({ navigation }) => {
 
       if (result.success) {
         // User is automatically logged in and redirected by AppNavigator
-        // No need for manual navigation or alert
+        // Show welcome message for new user
         console.log('✅ SignUpScreen: Registration successful, user automatically logged in');
         console.log('✅ SignUpScreen: Result data:', result.data);
+        Alert.alert('Welcome!', 'Your account has been created successfully. Welcome to our church community!');
       } else {
         console.log('❌ SignUpScreen: Registration failed:', result.error);
         Alert.alert('Registration Failed', result.error);

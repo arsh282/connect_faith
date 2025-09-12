@@ -21,6 +21,7 @@ export const CustomAuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   // Load stored authentication data on app start
   useEffect(() => {
@@ -46,6 +47,7 @@ export const CustomAuthProvider = ({ children }) => {
         setToken(storedToken);
         setUser(userData);
         setUserProfile(profileData);
+        setIsNewUser(false); // Loading stored data means returning user
       } else {
         console.log('ℹ️ CustomAuthContext: No stored auth data found');
       }
@@ -83,6 +85,7 @@ export const CustomAuthProvider = ({ children }) => {
         setToken(authToken);
         setUser(userData);
         setUserProfile({ ...userData, role: userData.role || 'Member' });
+        setIsNewUser(false); // This is a returning user
         
         console.log('✅ CustomAuthContext: Login successful');
         console.log('🔍 CustomAuthContext: User role:', userData.role);
@@ -130,6 +133,7 @@ export const CustomAuthProvider = ({ children }) => {
         setToken(authToken);
         setUser(userData);
         setUserProfile({ ...userData, role: userData.role || 'Member' });
+        setIsNewUser(true); // This is a new user
         
         console.log('✅ CustomAuthContext: User automatically logged in after registration');
         console.log('✅ CustomAuthContext: User state set:', userData);
@@ -158,6 +162,7 @@ export const CustomAuthProvider = ({ children }) => {
       setToken(null);
       setUser(null);
       setUserProfile(null);
+      setIsNewUser(false);
       
       console.log('✅ CustomAuthContext: Logout successful');
     } catch (error) {
@@ -248,16 +253,22 @@ export const CustomAuthProvider = ({ children }) => {
     return isAdmin();
   };
 
+  const clearNewUserFlag = () => {
+    setIsNewUser(false);
+  };
+
   const value = {
     user,
     userProfile,
     loading,
     token,
+    isNewUser,
     login,
     register,
     logout,
     updateUserProfile,
     forgotPassword,
+    clearNewUserFlag,
     // Role-based access control
     isAdmin,
     isMember,

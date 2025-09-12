@@ -2,13 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import {
-    Linking,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Linking,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import BirthdayWish from '../../components/BirthdayWish';
 import NotificationBell from '../../components/NotificationBell';
@@ -16,9 +16,10 @@ import { useRolePermissions } from '../../components/RoleBasedAccess';
 import { useAuth } from '../../context/CustomAuthContext';
 import { resetNotificationState } from '../../services/eventBroadcastService';
 import { useEventNotifications } from '../../services/eventNotificationService';
+import { hasOngoingOrUpcomingEvents } from '../../utils/eventUtils';
 
 const HomeScreen = ({ navigation }) => {
-  const { userProfile, logout } = useAuth();
+  const { userProfile, logout, isNewUser, clearNewUserFlag } = useAuth();
   
   useEffect(() => {
     // Log user profile information for debugging birthday wish feature
@@ -51,6 +52,17 @@ const HomeScreen = ({ navigation }) => {
       }
     }
   }, [userProfile]);
+
+  // Clear new user flag after a delay to show welcome message
+  useEffect(() => {
+    if (isNewUser) {
+      const timer = setTimeout(() => {
+        clearNewUserFlag();
+      }, 5000); // Clear after 5 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isNewUser, clearNewUserFlag]);
   const permissions = useRolePermissions();
   
   // Get events data from the API
@@ -146,6 +158,9 @@ const HomeScreen = ({ navigation }) => {
     Linking.openURL(youtubeUrl).catch(err => console.error('Failed to open YouTube:', err));
   };
 
+  // Check if there are ongoing or upcoming events
+  const hasOngoingEvents = hasOngoingOrUpcomingEvents(eventsToProcess);
+
   // Member features
   const memberFeatures = [
     {
@@ -167,7 +182,8 @@ const HomeScreen = ({ navigation }) => {
       icon: 'calendar-outline',
       color: '#6699CC',
       screen: 'Events',
-      description: 'View upcoming events'
+      description: 'View upcoming events',
+      hasIndicator: hasOngoingEvents
     },
     {
       title: 'Sermons',
@@ -262,7 +278,12 @@ const HomeScreen = ({ navigation }) => {
               <Ionicons name="person" size={24} color="#fff" />
             </View>
             <View style={styles.userDetails}>
-              <Text style={[styles.welcomeText, { fontWeight: 'bold' }]}>Welcome back, {userProfile?.fullName || 'User'}!</Text>
+              <Text style={[styles.welcomeText, { fontWeight: 'bold' }]}>
+                {isNewUser 
+                  ? `Welcome, ${userProfile?.firstName || 'User'}!` 
+                  : `Welcome back, ${userProfile?.firstName || 'User'}!`
+                }
+              </Text>
             </View>
           </View>
           <NotificationBell />
@@ -314,6 +335,11 @@ const HomeScreen = ({ navigation }) => {
               >
                 <View style={[styles.iconContainer, { backgroundColor: feature.color + '20' }]}>
                   <Ionicons name={feature.icon} size={28} color={feature.color} />
+                  {feature.hasIndicator && (
+                    <View style={styles.eventIndicator}>
+                      <View style={styles.eventIndicatorDot} />
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.featureTitle}>{feature.title}</Text>
                 <Text style={styles.featureDescription}>{feature.description}</Text>
@@ -445,6 +471,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+    position: 'relative',
+  },
+  eventIndicator: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  eventIndicatorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF4444',
   },
   featureTitle: {
     fontSize: 16,

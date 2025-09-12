@@ -41,7 +41,7 @@ const LoginScreen = ({ navigation }) => {
       if (result.success) {
         // Login successful - navigation will be handled by AppNavigator based on role
         console.log('Login successful');
-        Alert.alert('Welcome!', 'You have successfully logged in.');
+        Alert.alert('Welcome Back!', 'You have successfully logged in.');
       } else {
         Alert.alert('Login Failed', result.error);
       }

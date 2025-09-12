@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, View } from 'react-native';
 
+import { mockApiService } from '../services/mockApi';
+import { hasOngoingOrUpcomingEvents } from '../utils/eventUtils';
 import AnnouncementsScreen from '../views/screens/AnnouncementsScreen';
 import ChatScreen from '../views/screens/ChatScreen';
 import ContactListScreen from '../views/screens/ContactListScreen';
@@ -35,11 +38,23 @@ function HomeStack() {
       <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
       <Stack.Screen name="Donations" component={DonationsScreen} />
       <Stack.Screen name="Events" component={EventsCalendarScreen} />
-      <Stack.Screen name="Sermons" component={SermonArchiveScreen} />
-      <Stack.Screen name="SermonDetails" component={SermonDetailsScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="PrayerWall" component={PrayerWallScreen} />
       <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Sermons Stack for screens accessible from Sermons tab
+function SermonsStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="SermonsMain" component={SermonArchiveScreen} />
+      <Stack.Screen name="SermonDetails" component={SermonDetailsScreen} />
     </Stack.Navigator>
   );
 }
@@ -60,6 +75,30 @@ function ProfileStack() {
 }
 
 export default function UserTabs() {
+  const [hasEvents, setHasEvents] = useState(false);
+
+  // Fetch events to check for ongoing/upcoming events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await mockApiService.getEvents();
+        if (response.success && response.data) {
+          const hasOngoingEvents = hasOngoingOrUpcomingEvents(response.data);
+          setHasEvents(hasOngoingEvents);
+        }
+      } catch (error) {
+        console.error('Error fetching events for indicator:', error);
+      }
+    };
+
+    fetchEvents();
+    
+    // Refresh every 30 seconds to catch new events
+    const interval = setInterval(fetchEvents, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -78,6 +117,26 @@ export default function UserTabs() {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
+          }
+
+          // Add event indicator for Events tab
+          if (route.name === 'Events' && hasEvents) {
+            return (
+              <View style={{ position: 'relative' }}>
+                <Ionicons name={iconName} size={size} color={color} />
+                <View style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: '#FF4444',
+                  borderWidth: 1,
+                  borderColor: '#fff'
+                }} />
+              </View>
+            );
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -128,7 +187,7 @@ export default function UserTabs() {
       />
       <Tab.Screen 
         name="Sermons" 
-        component={SermonArchiveScreen}
+        component={SermonsStack}
         options={{
           title: 'Sermons',
         }}
