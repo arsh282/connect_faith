@@ -1,9 +1,8 @@
 const express = require('express');
-const { getFirestore } = require('../config/firebase');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
-const db = getFirestore();
 
 // @route   GET /api/users
 // @desc    Get all users (Admin only)
@@ -14,20 +13,7 @@ router.get('/', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
 
-    const usersSnapshot = await db.collection('users').get();
-    const users = [];
-    usersSnapshot.forEach(doc => {
-      const userData = doc.data();
-      users.push({
-        id: doc.id,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        role: userData.role,
-        createdAt: userData.createdAt
-      });
-    });
-
+    const users = await User.find({}, '-password').select('firstName lastName email role createdAt');
     res.json(users);
   } catch (error) {
     console.error('Get users error:', error);
@@ -40,39 +26,27 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const userDoc = await db.collection('users').doc(req.params.id).get();
+    const user = await User.findById(req.params.id).select('-password');
     
-    if (!userDoc.exists) {
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const userData = userDoc.data();
-    res.json({
-      id: userDoc.id,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      email: userData.email,
-      role: userData.role,
-      phone: userData.phone,
-      createdAt: userData.createdAt
-    });
+    res.json(user);
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 // @route   GET /api/users/:id/profile
-// @desc    Get user profile by ID (including date of birth)
+// @desc    Get user profile by ID (including all profile data)
 router.get('/:id/profile', auth, async (req, res) => {
   try {
-    const userDoc = await db.collection('users').doc(req.params.id).get();
-    if (!userDoc.exists) {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json({
-      id: userDoc.id,
-      ...userDoc.data()
-    });
+    res.json(user);
   } catch (error) {
     console.error('Get user profile error:', error);
     res.status(500).json({ message: 'Server error' });

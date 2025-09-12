@@ -5,21 +5,21 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const { initializeFirebase } = require('./config/firebase');
+const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
-const eventRoutes = require('./routes/events');
-const announcementRoutes = require('./routes/announcements');
-const donationRoutes = require('./routes/donations');
-const prayerRoutes = require('./routes/prayers');
-const sermonRoutes = require('./routes/sermons');
-const chatRoutes = require('./routes/chat');
+// const eventRoutes = require('./routes/events');
+// const announcementRoutes = require('./routes/announcements');
+// const donationRoutes = require('./routes/donations');
+// const prayerRoutes = require('./routes/prayers');
+// const sermonRoutes = require('./routes/sermons');
+// const chatRoutes = require('./routes/chat');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize Firebase
-initializeFirebase();
+// Connect to MongoDB Atlas
+connectDB();
 
 // Security middleware
 app.use(helmet());
@@ -45,18 +45,18 @@ app.use(morgan('combined'));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/announcements', announcementRoutes);
-app.use('/api/donations', donationRoutes);
-app.use('/api/prayers', prayerRoutes);
-app.use('/api/sermons', sermonRoutes);
-app.use('/api/chat', chatRoutes);
+// app.use('/api/events', eventRoutes);
+// app.use('/api/announcements', announcementRoutes);
+// app.use('/api/donations', donationRoutes);
+// app.use('/api/prayers', prayerRoutes);
+// app.use('/api/sermons', sermonRoutes);
+// app.use('/api/chat', chatRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Church App Backend with Firebase is running',
+    message: 'Church App Backend with MongoDB Atlas is running',
     timestamp: new Date().toISOString()
   });
 });
@@ -77,7 +77,7 @@ app.use('*', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Church App Backend with Firebase running on port ${PORT}`);
+  console.log(`🚀 Church App Backend with MongoDB Atlas running on port ${PORT}`);
   console.log(`📱 Health check: http://localhost:${PORT}/api/health`);
 });
 
